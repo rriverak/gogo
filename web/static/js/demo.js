@@ -32,7 +32,7 @@ var loadSessions = () => {
 
 window.createSession = (roomId, userName) => {
   document.getElementById('roomName').innerText = roomId;
-
+  let dc = null;
   let pc = new RTCPeerConnection({
     iceServers: [
       {
@@ -46,9 +46,22 @@ window.createSession = (roomId, userName) => {
       window.startSession(pc.localDescription)
     }
   }
-
-  pc.onaddstream = function (event) {
+  pc.ontrack = function (event) {
     console.log(event)
+    if (event && event.streams) {
+      const stream = event.streams[0]
+      if (stream.id === "mixed") {
+        var el = document.createElement("video")
+        el.setAttribute("class", "embed-responsive-item")
+        el.srcObject = stream
+        el.autoplay = true
+        el.controls = true
+        document.getElementById('remoteVideos').appendChild(el)
+      }
+    }
+  }
+  /*
+  pc.onaddstream = function (event) {
     if (event.stream.id === "mixed") {
       var el = document.createElement("video")
       el.setAttribute("class", "embed-responsive-item")
@@ -57,15 +70,17 @@ window.createSession = (roomId, userName) => {
       el.controls = true
       document.getElementById('remoteVideos').appendChild(el)
     }
-  }
-  
+  }*/
+  let sendChannel = pc.createDataChannel('data')
+  sendChannel.onmessage = e => log(`Message from DataChannel '${sendChannel.label}' payload '${e.data}'`)
+
   navigator.mediaDevices.getUserMedia(
     {
       video: {
         width: 320,
         height: 320,
       },
-      audio: false
+      audio: true
     })
     .then(stream => {
       pc.addStream(stream)
@@ -76,6 +91,7 @@ window.createSession = (roomId, userName) => {
     }).catch(log)
 
   window.leaveSession = () => {
+    sendChannel.send("close")
     pc.close();
   }
 

@@ -24,7 +24,15 @@ GstElement *gstreamer_create_pipeline(char *pipeline) {
 // Pipeline Bus
 static gboolean gstreamer_pipeline_bus_call(GstBus *bus, GstMessage *msg, gpointer data) {
   switch (GST_MESSAGE_TYPE(msg)) {
-
+  case GST_MESSAGE_STATE_CHANGED: {
+    GstState old_state, new_state;
+    gst_message_parse_state_changed(msg, &old_state, &new_state, NULL);
+    //g_print("Element %s changed state from %s to %s.\n",
+    //    GST_OBJECT_NAME (msg->src),
+    //    gst_element_state_get_name (old_state),
+    //    gst_element_state_get_name (new_state));
+    break;
+  }
   case GST_MESSAGE_EOS:
     g_print("End of stream\n");
     exit(1);
@@ -51,7 +59,6 @@ static gboolean gstreamer_pipeline_bus_call(GstBus *bus, GstMessage *msg, gpoint
 // Pipeline Bus
 static gboolean gstreamer_pipeline_send_bus_call(GstBus *bus, GstMessage *msg, gpointer data) {
   switch (GST_MESSAGE_TYPE(msg)) {
-
   case GST_MESSAGE_EOS:
     g_print("End of stream\n");
     exit(1);
@@ -110,7 +117,6 @@ void gstreamer_start_pipeline(GstElement *pipeline, char *pipelineId) {
   g_object_set(appsink, "emit-signals", TRUE, NULL);
   g_signal_connect(appsink, "new-sample", G_CALLBACK(gstreamer_pipeline_output_sample_handler), s);
   gst_object_unref(appsink);
-
   gst_element_set_state(pipeline, GST_STATE_PLAYING);
 }
 
@@ -121,12 +127,14 @@ void gstreamer_stop_pipeline(GstElement *pipeline) {
 
 //Push Buffer to Pipeline AppSource
 void gstreamer_push_buffer(GstElement *pipeline, void *buffer, int len, char *appSource) {
-  GstElement *src = gst_bin_get_by_name(GST_BIN(pipeline), appSource);
-  if (src != NULL) {
-    gpointer p = g_memdup(buffer, len);
-    GstBuffer *buffer = gst_buffer_new_wrapped(p, len);
-    gst_app_src_push_buffer(GST_APP_SRC(src), buffer);
-    gst_object_unref(src);
+  if (pipeline != NULL){
+    GstElement *src = gst_bin_get_by_name(GST_BIN(pipeline), appSource);
+    if (src != NULL) {
+      gpointer p = g_memdup(buffer, len);
+      GstBuffer *buffer = gst_buffer_new_wrapped(p, len);
+      gst_app_src_push_buffer(GST_APP_SRC(src), buffer);
+      gst_object_unref(src);
+    }
   }
 }
 

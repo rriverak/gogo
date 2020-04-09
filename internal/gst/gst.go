@@ -8,6 +8,7 @@ package gst
 */
 import "C"
 import (
+	"fmt"
 	"io"
 	"sync"
 	"unsafe"
@@ -50,6 +51,7 @@ func (p *Pipeline) Start() {
 
 // Stop stops the GStreamer Pipeline
 func (p *Pipeline) Stop() {
+	// Lock Pipelines
 	C.gstreamer_stop_pipeline(p.Pipeline)
 }
 
@@ -59,15 +61,21 @@ func (p *Pipeline) WriteSampleToOutputTrack(s media.Sample) error {
 }
 
 // WriteSampleToInputSource writes a Buffer to a appsrc of the GStreamer Pipeline
-func (p *Pipeline) WriteSampleToInputSource(buffer []byte, appSource string) {
+func (p *Pipeline) WriteSampleToInputSource(buffer []byte, sourceID string) {
+	// Generate AppSource
+	appSource := getAppSrcString(sourceID)
 	// App Source as CString
 	appSourceStrUnsafe := C.CString(appSource)
 	defer C.free(unsafe.Pointer(appSourceStrUnsafe))
 	// Buffer as CBytes
 	b := C.CBytes(buffer)
 	defer C.free(b)
+
 	// Push Buffer to Pipeline
-	C.gstreamer_push_buffer(p.Pipeline, b, C.int(len(buffer)), appSourceStrUnsafe)
+	// #TODO: Not good that p could be empty in case of GC Collect! Leak in Stop func Possible
+	if p != nil && p.Pipeline != nil {
+		C.gstreamer_push_buffer(p.Pipeline, b, C.int(len(buffer)), appSourceStrUnsafe)
+	}
 }
 
 //StartMainLoop for GStreamer
@@ -117,4 +125,8 @@ func goHandlePipelineOutputBuffer(buffer unsafe.Pointer, bufferLen C.int, durati
 	}
 	// Free old Buffer
 	C.free(buffer)
+}
+
+func getAppSrcString(str string) string {
+	return fmt.Sprintf("src-%v", str)
 }

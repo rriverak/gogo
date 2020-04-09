@@ -1,6 +1,8 @@
 package gst
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // CreateVideoMixerPipeline Creating a Pipeline for Composite Video Mixing
 func CreateVideoMixerPipeline(codecName string, channels []string) *Pipeline {
@@ -29,13 +31,36 @@ func CreateVideoMixerPipeline(codecName string, channels []string) *Pipeline {
 
 	// VideoSources
 	for _, vChan := range channels {
-		builder.AddSource(vChan, codecName, vChan).AddNewLine()
+		builder.AddSource(vChan, codecName, vChan, true).AddNewLine()
 	}
 
 	// Get GStreamer Pipeline
 	gstreamerPipe := builder.Get()
-	Logger.Debugf("Generated GStreamer Pipeline => \n %v \n", gstreamerPipe)
+	Logger.Infof("[GStreamer] Generated VideoMixer Pipeline => \n %v \n", gstreamerPipe)
 
 	// Create the GPipeline
+	return CreatePipeline(codecName, gstreamerPipe, builder.GetClockRate())
+}
+
+//CreateAudioMixerPipeline Creating a Pipeline for Composite Audio Mixing (n-1)
+func CreateAudioMixerPipeline(codecName string, channels []string) *Pipeline {
+	// Definition
+	outputSinkName := "appsink"
+	mixerSinkSettings := []string{}
+
+	// Builder
+	builder := newGstBuilder()
+	// VideoMixer
+	builder.AddAudioMixer(codecName, mixerSinkSettings, outputSinkName)
+
+	// AudioSources
+	for _, vChan := range channels {
+		builder.AddSource(vChan, codecName, "", false).AddNewLine()
+	}
+
+	// Get GStreamer Pipeline
+	gstreamerPipe := builder.Get()
+	Logger.Infof("[GStreamer] Generated AudioMixer Pipeline => \n %v \n", gstreamerPipe)
+
 	return CreatePipeline(codecName, gstreamerPipe, builder.GetClockRate())
 }

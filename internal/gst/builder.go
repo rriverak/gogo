@@ -27,11 +27,15 @@ func newGstBuilder() *gstBuilder {
 
 // High Level Builder
 
-func (g *gstBuilder) AddSource(sourceName string, codecName string, overlayText string) *gstBuilder {
-	g.AddStr(fmt.Sprintf("appsrc format=time is-live=true do-timestamp=true name=src-%v", sourceName)).AddPipe()
-	g.AddStr("application/x-rtp, framerate=(fraction)30/1,width=100,height=100").AddStr(gstGetDecoder(codecName)).AddPipe()
+func (g *gstBuilder) AddSource(sourceID string, codecName string, overlayText string, boxed bool) *gstBuilder {
+	sourceName := getAppSrcString(sourceID)
+	g.AddStr(fmt.Sprintf("appsrc format=time is-live=true do-timestamp=true name=%v", sourceName)).AddPipe()
+	g.AddStr("application/x-rtp ")
+	g.AddStr(gstGetDecoder(codecName)).AddPipe()
 	//VideoBox
-	g.AddStr("videobox autocrop=true ! video/x-raw, width=350, height=350").AddPipe()
+	if boxed {
+		g.AddStr("videobox autocrop=true ! video/x-raw, width=350, height=350").AddPipe()
+	}
 	//Overlay
 	if len(overlayText) > 0 {
 		g.AddStr(gstGetTextOverlay(overlayText)).AddPipe()
@@ -41,6 +45,13 @@ func (g *gstBuilder) AddSource(sourceName string, codecName string, overlayText 
 
 func (g *gstBuilder) AddVideoMixer(codecName string, sinkSettings []string, outputSinkName string) *gstBuilder {
 	g.AddStr("videomixer name=mix background=black ")
+	g.AddStr(strings.Join(sinkSettings, " "))
+	encoder, clockRate := gstGetEncoder(codecName)
+	g.clockRate = clockRate
+	return g.AddStr(encoder).AddPipe().AddStr(fmt.Sprintf("appsink name=%v ", outputSinkName)).AddPipe().AddNewLine()
+}
+func (g *gstBuilder) AddAudioMixer(codecName string, sinkSettings []string, outputSinkName string) *gstBuilder {
+	g.AddStr("audiomixer name=mix ")
 	g.AddStr(strings.Join(sinkSettings, " "))
 	encoder, clockRate := gstGetEncoder(codecName)
 	g.clockRate = clockRate
@@ -79,13 +90,13 @@ func gstGetDecoder(codecName string) string {
 	case webrtc.VP8:
 		chansrc += ", encoding-name=VP8-DRAFT-IETF-01 ! rtpvp8depay ! decodebin "
 	case webrtc.Opus:
-		chansrc += ", payload=96, encoding-name=OPUS ! rtpopusdepay ! decodebin ! autoaudiosink"
+		chansrc += ", payload=96, encoding-name=OPUS ! rtpopusdepay ! decodebin "
 	case webrtc.VP9:
 		chansrc += " ! rtpvp9depay ! decodebin "
 	case webrtc.H264:
 		chansrc += " ! rtph264depay ! decodebin "
 	case webrtc.G722:
-		chansrc += " clock-rate=8000 ! rtpg722depay ! decodebin ! autoaudiosink"
+		chansrc += " clock-rate=8000 ! rtpg722depay ! decodebin "
 	default:
 		panic("Unhandled codec " + codecName)
 	}
