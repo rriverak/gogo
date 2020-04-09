@@ -14,7 +14,7 @@ import (
 
 	"github.com/pion/webrtc/v2"
 	"github.com/pion/webrtc/v2/pkg/media"
-	"github.com/rriverak/gogo/internal/signal"
+	"github.com/rriverak/gogo/internal/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -88,7 +88,7 @@ func CreatePipeline(codecName string, pipelineStr string, clockRate float32) *Pi
 	// Create new Pipeline
 	pipeline := &Pipeline{
 		Pipeline:  C.gstreamer_create_pipeline(pipelineStrUnsafe),
-		id:        signal.RandSeq(5),
+		id:        utils.RandSeq(5),
 		codecName: codecName,
 		clockRate: clockRate,
 	}

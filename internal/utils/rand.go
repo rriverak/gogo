@@ -1,4 +1,4 @@
-package signal
+package utils
 
 import (
 	"math/rand"

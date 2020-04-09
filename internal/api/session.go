@@ -13,6 +13,7 @@ import (
 	"github.com/pion/webrtc/v2"
 	"github.com/rriverak/gogo/internal/gst"
 	"github.com/rriverak/gogo/internal/signal"
+	"github.com/rriverak/gogo/internal/utils"
 )
 
 var peerConnectionConfig webrtc.Configuration = webrtc.Configuration{
@@ -66,7 +67,7 @@ func (s *Session) Restart() {
 
 //NewUser creates a new User
 func NewUser(name string) User {
-	return User{ID: signal.RandSeq(5), Name: name}
+	return User{ID: utils.RandSeq(5), Name: name}
 }
 
 //User can Connect to a Session
