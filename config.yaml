@@ -1,0 +1,6 @@
+sfdlpath: ""
+downloadpath: ""
+web:
+  httpbind: :8080
+  api: true
+  web: false
