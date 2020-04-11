@@ -76,16 +76,34 @@ func (s *SessionHandler) JoiningSessions(w http.ResponseWriter, r *http.Request)
 	body, _ := ioutil.ReadAll(r.Body)
 	signal.Decode(string(body), &offer)
 
-	Logger.Info(offer)
-	// Prepare Engine
-	err := s.MediaEngine.PopulateFromSDP(offer)
+	/*
+		// Prepare Engine
+		err := s.MediaEngine.PopulateFromSDP(offer)
+		if err != nil {
+			panic(err)
+		}
+
+	*/
+	parsed := sdp.SessionDescription{}
+	if err := parsed.Unmarshal([]byte(offer.SDP)); err != nil {
+		panic(err)
+	}
+
+	vp8 := sdp.Codec{
+		Name: "VP8",
+	}
+	payloadType, err := parsed.GetPayloadTypeForCodec(vp8)
 	if err != nil {
 		panic(err)
 	}
 
+	m := webrtc.MediaEngine{}
+	m.RegisterCodec(webrtc.NewRTPVP8Codec(payloadType, 90000))
+	m.RegisterCodec(webrtc.NewRTPOpusCodec(webrtc.DefaultPayloadTypeOpus, 48000))
+
 	// Create a API
 	if session.API == nil {
-		session.API = webrtc.NewAPI(webrtc.WithMediaEngine(*s.MediaEngine))
+		session.API = webrtc.NewAPI(webrtc.WithMediaEngine(m))
 	}
 
 	// Create a Peer
@@ -112,7 +130,7 @@ func (s *SessionHandler) JoiningSessions(w http.ResponseWriter, r *http.Request)
 
 	// Create a new Mixed Video Track if not exists
 	if session.VideoTrack == nil {
-		mixedVideoTrack, newTrackErr := peerConnection.NewTrack(webrtc.DefaultPayloadTypeVP8, rand.Uint32(), "video", "video-mixed")
+		mixedVideoTrack, newTrackErr := peerConnection.NewTrack(payloadType, rand.Uint32(), "video", "video-mixed")
 		if newTrackErr != nil {
 			panic(newTrackErr)
 		}
@@ -176,7 +194,7 @@ func (s *SessionHandler) JoiningSessions(w http.ResponseWriter, r *http.Request)
 
 	// Set a handler for when a new remote track starts by our Peer
 	peerConnection.OnTrack(func(remoteTrack *webrtc.Track, receiver *webrtc.RTPReceiver) {
-		if remoteTrack.PayloadType() == webrtc.DefaultPayloadTypeVP8 || remoteTrack.PayloadType() == webrtc.DefaultPayloadTypeH264 {
+		if remoteTrack.PayloadType() == webrtc.DefaultPayloadTypeVP8 || remoteTrack.PayloadType() == payloadType {
 			// Video Track
 			// Send a PLI on an interval so that the publisher is pushing a keyframe every rtcpPLIInterval
 			// This can be less wasteful by processing incoming RTCP events, then we would emit a NACK/PLI when a viewer requests it
@@ -194,10 +212,11 @@ func (s *SessionHandler) JoiningSessions(w http.ResponseWriter, r *http.Request)
 				// Read remote Buffer
 				i, readErr := remoteTrack.Read(rtpBuf)
 				if readErr != nil {
-					panic(readErr)
+					Logger.Error(readErr)
+				} else {
+					// Push RTP Samples to GStreamer Pipeline with specific appsrc (user_id)
+					session.VideoPipeline.WriteSampleToInputSource(rtpBuf[:i], newUser.ID)
 				}
-				// Push RTP Samples to GStreamer Pipeline with specific appsrc (user_id)
-				session.VideoPipeline.WriteSampleToInputSource(rtpBuf[:i], newUser.ID)
 			}
 		} else if remoteTrack.PayloadType() == webrtc.DefaultPayloadTypeOpus {
 			// Audio Track
@@ -207,10 +226,11 @@ func (s *SessionHandler) JoiningSessions(w http.ResponseWriter, r *http.Request)
 				// Read remote Buffer
 				i, readErr := remoteTrack.Read(rtpBuf)
 				if readErr != nil {
-					panic(readErr)
+					Logger.Error(readErr)
+				} else {
+					// Push RTP Samples to GStreamer Pipeline with specific appsrc (user_id)
+					session.AudioPipeline.WriteSampleToInputSource(rtpBuf[:i], newUser.ID)
 				}
-				// Push RTP Samples to GStreamer Pipeline with specific appsrc (user_id)
-				session.AudioPipeline.WriteSampleToInputSource(rtpBuf[:i], newUser.ID)
 			}
 		} else {
 			Logger.Infof("NoTrack => %v", remoteTrack.PayloadType())

@@ -29,6 +29,8 @@ var loadSessions = () => {
     })
   });
 };
+console.log(RTCRtpSender.getCapabilities('audio'))
+console.log(RTCRtpSender.getCapabilities('video'))
 
 window.createSession = (roomId, userName) => {
   document.getElementById('roomName').innerText = roomId;
@@ -46,7 +48,6 @@ window.createSession = (roomId, userName) => {
       window.startSession(pc.localDescription)
     }
   }
-
   pc.ontrack = function (event) {
     if (event && event.streams) {
       const stream = event.streams[0]
@@ -81,7 +82,8 @@ window.createSession = (roomId, userName) => {
       el.controls = true
       document.getElementById('remoteVideos').appendChild(el)
     }
-  }*/
+  }
+  */
   let sendChannel = pc.createDataChannel('data')
   sendChannel.onmessage = e => log(`Message from DataChannel '${sendChannel.label}' payload '${e.data}'`)
 
@@ -99,7 +101,7 @@ window.createSession = (roomId, userName) => {
       pc.addTransceiver('video')
       pc.addTransceiver('audio')
       pc.createOffer()
-        .then(d => pc.setLocalDescription(d))
+        .then(d => { pc.setLocalDescription(d) && console.log(d.sdp)})
         .catch((msg) => { log; })
     }).catch((msg) => { log; })
 
