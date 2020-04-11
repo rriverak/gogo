@@ -30,7 +30,7 @@ func newGstBuilder() *gstBuilder {
 func (g *gstBuilder) AddSource(sourceID string, codecName string, overlayText string, boxed bool) *gstBuilder {
 	sourceName := getAppSrcString(sourceID)
 	g.AddStr(fmt.Sprintf("appsrc format=time is-live=true do-timestamp=true name=%v", sourceName)).AddPipe()
-	g.AddStr("application/x-rtp ")
+	g.AddStr("application/x-rtp")
 	g.AddStr(gstGetDecoder(codecName)).AddPipe()
 	//VideoBox
 	if boxed {
@@ -40,22 +40,24 @@ func (g *gstBuilder) AddSource(sourceID string, codecName string, overlayText st
 	if len(overlayText) > 0 {
 		g.AddStr(gstGetTextOverlay(overlayText)).AddPipe()
 	}
-	return g.AddStr("queue2").AddPipe().AddStr("mix.").AddNewLine()
+	//g.AddStr("queue2").AddPipe()
+	g.AddStr("mix.").AddNewLine()
+	return g
 }
 
 func (g *gstBuilder) AddVideoMixer(codecName string, sinkSettings []string, outputSinkName string) *gstBuilder {
-	g.AddStr("videomixer name=mix background=black ")
+	g.AddStr("compositor name=mix background=black ")
 	g.AddStr(strings.Join(sinkSettings, " "))
 	encoder, clockRate := gstGetEncoder(codecName)
 	g.clockRate = clockRate
-	return g.AddStr(encoder).AddPipe().AddStr(fmt.Sprintf("appsink name=%v ", outputSinkName)).AddPipe().AddNewLine()
+	return g.AddStr(encoder).AddPipe().AddStr(fmt.Sprintf("appsink drop=true max-buffers=1 name=%v ", outputSinkName)).AddPipe().AddNewLine()
 }
 func (g *gstBuilder) AddAudioMixer(codecName string, sinkSettings []string, outputSinkName string) *gstBuilder {
-	g.AddStr("audiomixer name=mix ")
+	g.AddStr("audiomixer start-time-selection=first name=mix ")
 	g.AddStr(strings.Join(sinkSettings, " "))
 	encoder, clockRate := gstGetEncoder(codecName)
 	g.clockRate = clockRate
-	return g.AddStr(encoder).AddPipe().AddStr(fmt.Sprintf("appsink name=%v ", outputSinkName)).AddPipe().AddNewLine()
+	return g.AddStr(encoder).AddPipe().AddStr(fmt.Sprintf("appsink drop=true max-buffers=1 name=%v ", outputSinkName)).AddPipe().AddNewLine()
 }
 
 // LowLevel Funcs
@@ -106,7 +108,7 @@ func gstGetDecoder(codecName string) string {
 func gstGetEncoder(codecName string) (string, float32) {
 	switch codecName {
 	case webrtc.VP8:
-		return " ! vp8enc error-resilient=partitions keyframe-max-dist=10 auto-alt-ref=true cpu-used=5 deadline=1 ", videoClockRate
+		return " ! vp8enc error-resilient=partitions keyframe-max-dist=30 buffer-size=0 auto-alt-ref=true cpu-used=5 deadline=1 ", videoClockRate
 	case webrtc.VP9:
 		return " ! vp9enc ", videoClockRate
 	case webrtc.H264:

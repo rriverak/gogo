@@ -5,11 +5,13 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/patrickmn/go-cache"
 	"github.com/pion/rtcp"
+	"github.com/pion/sdp/v2"
 	"github.com/pion/webrtc/v2"
 	"github.com/rriverak/gogo/internal/rtc"
 	"github.com/rriverak/gogo/internal/signal"
@@ -74,6 +76,7 @@ func (s *SessionHandler) JoiningSessions(w http.ResponseWriter, r *http.Request)
 	body, _ := ioutil.ReadAll(r.Body)
 	signal.Decode(string(body), &offer)
 
+	Logger.Info(offer)
 	// Prepare Engine
 	err := s.MediaEngine.PopulateFromSDP(offer)
 	if err != nil {
@@ -109,7 +112,7 @@ func (s *SessionHandler) JoiningSessions(w http.ResponseWriter, r *http.Request)
 
 	// Create a new Mixed Video Track if not exists
 	if session.VideoTrack == nil {
-		mixedVideoTrack, newTrackErr := peerConnection.NewTrack(webrtc.DefaultPayloadTypeVP8, rand.Uint32(), "video", "mixed")
+		mixedVideoTrack, newTrackErr := peerConnection.NewTrack(webrtc.DefaultPayloadTypeVP8, rand.Uint32(), "video", "video-mixed")
 		if newTrackErr != nil {
 			panic(newTrackErr)
 		}
@@ -118,7 +121,7 @@ func (s *SessionHandler) JoiningSessions(w http.ResponseWriter, r *http.Request)
 
 	// Create a new Mixed Audio Track if not exists
 	if session.AudioTrack == nil {
-		mixedAudioTrack, newTrackErr := peerConnection.NewTrack(webrtc.DefaultPayloadTypeOpus, rand.Uint32(), "audio", "amixed")
+		mixedAudioTrack, newTrackErr := peerConnection.NewTrack(webrtc.DefaultPayloadTypeOpus, rand.Uint32(), "audio", "audio-mixed")
 		if newTrackErr != nil {
 			panic(newTrackErr)
 		}
@@ -163,13 +166,17 @@ func (s *SessionHandler) JoiningSessions(w http.ResponseWriter, r *http.Request)
 			if d.Label() == "data" && message == "close" {
 				Logger.Infof("User => %v close the Session", userName)
 				session.RemoveUser(userName)
+				err := peerConnection.Close()
+				if err != nil {
+					Logger.Error(err)
+				}
 			}
 		})
 	})
 
 	// Set a handler for when a new remote track starts by our Peer
 	peerConnection.OnTrack(func(remoteTrack *webrtc.Track, receiver *webrtc.RTPReceiver) {
-		if remoteTrack.PayloadType() == webrtc.DefaultPayloadTypeVP8 || remoteTrack.PayloadType() == webrtc.DefaultPayloadTypeVP9 || remoteTrack.PayloadType() == webrtc.DefaultPayloadTypeH264 {
+		if remoteTrack.PayloadType() == webrtc.DefaultPayloadTypeVP8 || remoteTrack.PayloadType() == webrtc.DefaultPayloadTypeH264 {
 			// Video Track
 			// Send a PLI on an interval so that the publisher is pushing a keyframe every rtcpPLIInterval
 			// This can be less wasteful by processing incoming RTCP events, then we would emit a NACK/PLI when a viewer requests it
@@ -192,8 +199,6 @@ func (s *SessionHandler) JoiningSessions(w http.ResponseWriter, r *http.Request)
 				// Push RTP Samples to GStreamer Pipeline with specific appsrc (user_id)
 				session.VideoPipeline.WriteSampleToInputSource(rtpBuf[:i], newUser.ID)
 			}
-			Logger.Info("VideoTrack")
-
 		} else if remoteTrack.PayloadType() == webrtc.DefaultPayloadTypeOpus {
 			// Audio Track
 			// Create a Buffer Loop
@@ -207,9 +212,9 @@ func (s *SessionHandler) JoiningSessions(w http.ResponseWriter, r *http.Request)
 				// Push RTP Samples to GStreamer Pipeline with specific appsrc (user_id)
 				session.AudioPipeline.WriteSampleToInputSource(rtpBuf[:i], newUser.ID)
 			}
-			Logger.Info("AudioTrack")
+		} else {
+			Logger.Infof("NoTrack => %v", remoteTrack.PayloadType())
 		}
-		Logger.Info("NoTrack")
 
 	})
 
@@ -243,4 +248,30 @@ func (s *SessionHandler) JoiningSessions(w http.ResponseWriter, r *http.Request)
 
 	// Write Awnser to Client
 	WriteJSON(w, answer)
+}
+
+// firstCodecOfType returns the first codec of a chosen type from a session description
+func firstCodecOfType(sd webrtc.SessionDescription, codecName string) (*sdp.Codec, error) {
+	sdpsd := sdp.SessionDescription{}
+	err := sdpsd.Unmarshal([]byte(sd.SDP))
+	if err != nil {
+		return nil, err
+	}
+	for _, md := range sdpsd.MediaDescriptions {
+		for _, format := range md.MediaName.Formats {
+			pt, err := strconv.Atoi(format)
+			if err != nil {
+				return nil, fmt.Errorf("format parse error")
+			}
+			payloadType := uint8(pt)
+			payloadCodec, err := sdpsd.GetCodecForPayloadType(payloadType)
+			if err != nil {
+				return nil, fmt.Errorf("could not find codec for payload type %d", payloadType)
+			}
+			if payloadCodec.Name == codecName {
+				return &payloadCodec, nil
+			}
+		}
+	}
+	return nil, fmt.Errorf("no codec of type %s found in SDP", codecName)
 }

@@ -1,6 +1,6 @@
 /* eslint-env browser */
 var log = msg => {
-  if (msg && msg.length > 0 ){
+  if (msg && msg.length > 0) {
     document.getElementById('logs').innerHTML += '<li>' + msg + '</li>'
   }
 }
@@ -15,7 +15,7 @@ var loadSessions = () => {
           const roomData = data[roomKey].Object;
 
           var el = document.createElement("button")
-          el.setAttribute("class","btn btn-default hideAfterStart")
+          el.setAttribute("class", "btn btn-default hideAfterStart")
           el.innerHTML = roomData.ID + " <span class=\"badge\">" + roomData.Users.length + "</span>";
           el.onclick = () => {
             const userName = document.getElementById('txtUsername').value;
@@ -46,17 +46,28 @@ window.createSession = (roomId, userName) => {
       window.startSession(pc.localDescription)
     }
   }
+
   pc.ontrack = function (event) {
-    console.log(event)
     if (event && event.streams) {
       const stream = event.streams[0]
-      if (stream.id === "mixed") {
+      if (stream.id === "video-mixed") {
+        console.log("Add Video Stream")
         var el = document.createElement("video")
-        el.setAttribute("class", "embed-responsive-item")
-        el.srcObject = stream
+        el.srcObject = event.streams[0]
+        el.id = "main-video"
         el.autoplay = true
         el.controls = true
+        el.onerror = (err) => { console.log(err) }
+        el.onplaying = (ev) => { console.log(ev) }
         document.getElementById('remoteVideos').appendChild(el)
+      }
+
+      if (stream.id === "audio-mixed") {
+        console.log("Add Audio Track")
+        let el = document.getElementById('main-video')
+        if (el.srcObject) {
+          el.srcObject.addTrack(event.track)
+        }
       }
     }
   }
@@ -76,19 +87,21 @@ window.createSession = (roomId, userName) => {
 
   navigator.mediaDevices.getUserMedia(
     {
-      video: {
+      "audio": true,
+      "video": {
         width: 320,
         height: 320,
       },
-      audio: true
-    })
-    .then(stream => {
-      pc.addStream(stream)
+    }).then(stream => {
+      stream.getTracks().forEach(function (track) {
+        pc.addTrack(track, stream);
+      });
       pc.addTransceiver('video')
+      pc.addTransceiver('audio')
       pc.createOffer()
         .then(d => pc.setLocalDescription(d))
-        .catch(log)
-    }).catch(log)
+        .catch((msg) => { log; })
+    }).catch((msg) => { log; })
 
   window.leaveSession = () => {
     sendChannel.send("close")
@@ -97,7 +110,7 @@ window.createSession = (roomId, userName) => {
 
   window.startSession = () => {
     document.getElementById('logspanel').style = "display: block;";
-    fetch('/api/sessions/'+roomId+'/' + userName, {
+    fetch('/api/sessions/' + roomId + '/' + userName, {
       method: 'POST',
       body: btoa(JSON.stringify(pc.localDescription))
     }).then((resp) => {
@@ -111,7 +124,7 @@ window.createSession = (roomId, userName) => {
     });
   }
 
-  
+
   let hideElms = document.getElementsByClassName('hideAfterStart')
   for (let i = 0; i < hideElms.length; i++) {
     hideElms[i].style = 'display: none'
@@ -124,7 +137,7 @@ window.createSession = (roomId, userName) => {
 }
 
 
-window.createRoom = ()=>{
+window.createRoom = () => {
   const userName = document.getElementById('txtUsername').value;
   const roomName = document.getElementById('txtRoom').value;
   window.createSession(roomName, userName)

@@ -32,9 +32,10 @@ func main() {
 
 	// API
 	mediaEngine := webrtc.MediaEngine{}
-	mediaEngine.RegisterCodec(webrtc.NewRTPVP8Codec(webrtc.DefaultPayloadTypeVP8, 90000))
+	//mediaEngine.RegisterDefaultCodecs()
+	mediaEngine.RegisterCodec(webrtc.NewRTPVP8Codec(webrtc.DefaultPayloadTypeH264, 90000))
+	// mediaEngine.RegisterCodec(webrtc.NewRTPVP8Codec(100, 90000))
 	mediaEngine.RegisterCodec(webrtc.NewRTPOpusCodec(webrtc.DefaultPayloadTypeOpus, 48000))
-
 	sessionHandler := api.SessionHandler{MediaEngine: &mediaEngine}
 	sessionHandler.RegisterSessionRoutes(router)
 

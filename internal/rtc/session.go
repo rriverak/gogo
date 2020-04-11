@@ -26,12 +26,10 @@ func (s *Session) Start() {
 	for _, usr := range s.Users {
 		chans = append(chans, usr.ID)
 	}
-
 	// Create GStreamer Pipeline
 	s.VideoPipeline = gst.CreateVideoMixerPipeline(webrtc.VP8, chans)
 	// Create GStreamer Pipeline
 	s.AudioPipeline = gst.CreateAudioMixerPipeline(webrtc.Opus, chans)
-
 	// Set Pipeline output
 	s.VideoPipeline.SetOutputTrack(s.VideoTrack)
 	s.AudioPipeline.SetOutputTrack(s.AudioTrack)
@@ -40,9 +38,8 @@ func (s *Session) Start() {
 	s.AudioPipeline.Start()
 }
 
-//Restart a Session with new Parameters
-func (s *Session) Restart() {
-
+//Stop a Session
+func (s *Session) Stop() {
 	// Stop Running Pipeline
 	if s.VideoPipeline != nil {
 		// Set Locking
@@ -55,6 +52,11 @@ func (s *Session) Restart() {
 		s.AudioPipeline = nil
 	}
 
+}
+
+//Restart a Session with new Parameters
+func (s *Session) Restart() {
+	s.Stop()
 	s.Start()
 }
 
@@ -79,5 +81,10 @@ func (s *Session) RemoveUser(userName string) {
 		}
 	}
 	s.Users = tmpUsers
-	s.Restart()
+
+	if len(s.Users) != 0 {
+		s.Restart()
+	} else {
+		s.Stop()
+	}
 }
