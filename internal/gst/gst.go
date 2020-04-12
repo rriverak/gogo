@@ -65,7 +65,7 @@ func (p *Pipeline) WriteSampleToOutputTrack(buffer []byte, samples uint32) error
 	for _, track := range p.outputTracks {
 		err := track.WriteSample(media.Sample{Data: buffer, Samples: samples})
 		if err != nil {
-			fmt.Println(err)
+			Logger.Errorf("WriteSampleToOutputTrack => %v", track.ID(), err)
 		}
 	}
 	return nil

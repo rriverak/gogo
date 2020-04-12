@@ -9,6 +9,7 @@ import (
 	"github.com/rriverak/gogo/internal/api"
 	"github.com/rriverak/gogo/internal/config"
 	"github.com/rriverak/gogo/internal/gst"
+	"github.com/rriverak/gogo/internal/rtc"
 	"github.com/rriverak/gogo/web"
 	"github.com/sirupsen/logrus"
 )
@@ -26,6 +27,7 @@ func main() {
 	logger.Out = os.Stdout
 	api.Logger = logger
 	gst.Logger = logger
+	rtc.Logger = logger
 
 	// Router
 	router := mux.NewRouter()

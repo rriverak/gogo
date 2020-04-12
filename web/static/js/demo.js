@@ -29,8 +29,6 @@ var loadSessions = () => {
     })
   });
 };
-console.log(RTCRtpSender.getCapabilities('audio'))
-console.log(RTCRtpSender.getCapabilities('video'))
 
 window.createSession = (roomId, userName) => {
   document.getElementById('roomName').innerText = roomId;
@@ -51,7 +49,7 @@ window.createSession = (roomId, userName) => {
   pc.ontrack = function (event) {
     if (event && event.streams) {
       const stream = event.streams[0]
-      if (stream.id === "video-mixed") {
+      if (stream.id === "video-pipe") {
         console.log("Add Video Stream")
         var el = document.createElement("video")
         el.srcObject = event.streams[0]
@@ -64,7 +62,7 @@ window.createSession = (roomId, userName) => {
         document.getElementById('remoteVideos').appendChild(el)
       }
 
-      if (stream.id === "audio-mixed") {
+      if (stream.id === "audio-pipe") {
         console.log("Add Audio Track")
         let el = document.getElementById('main-video')
         if (el.srcObject) {

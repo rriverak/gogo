@@ -31,6 +31,11 @@ func (s *Session) Start() {
 	// Create GStreamer Pipeline
 	s.AudioPipeline = gst.CreateAudioMixerPipeline(webrtc.Opus, chans)
 
+	for _, usr := range s.Users {
+		s.VideoPipeline.AddOutputTrack(usr.VideOutput())
+		s.AudioPipeline.AddOutputTrack(usr.AudioOutput())
+	}
+
 	// Start Pipeline output
 	s.VideoPipeline.Start()
 	s.AudioPipeline.Start()
@@ -54,29 +59,22 @@ func (s *Session) Stop() {
 
 //Restart a Session with new Parameters
 func (s *Session) Restart() {
-	vTracks := []*webrtc.Track{}
-	if s.VideoPipeline != nil {
-		vTracks = s.VideoPipeline.GetOutputTracks()
-	}
-	aTracks := []*webrtc.Track{}
-	if s.AudioPipeline != nil {
-		aTracks = s.AudioPipeline.GetOutputTracks()
-	}
-
 	s.Stop()
 	s.Start()
-
-	s.VideoPipeline.SettingOutputTracks(vTracks)
-	s.AudioPipeline.SettingOutputTracks(aTracks)
-
 }
 
 //AddUser to Session and restart Pipeline
 func (s *Session) AddUser(newUser User) {
+	// Register Users RemoteTrack with Session
+	newUser.Peer.OnTrack(newUser.RemoteTrackHandler(s))
+
+	// Add user to Collection
 	if s.Users == nil {
 		s.Users = make([]User, 0)
 	}
 	s.Users = append(s.Users, newUser)
+
+	// Restart Session Pipeline
 	s.Restart()
 }
 
