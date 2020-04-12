@@ -1,21 +1,19 @@
 package rtc
 
 import (
-	"sync"
-
 	"github.com/pion/webrtc/v2"
 	"github.com/rriverak/gogo/internal/gst"
 )
 
 //Session is a GroupVideo Call
 type Session struct {
-	ID            string        `json:"ID"`
-	API           *webrtc.API   `json:"-"`
+	ID            string      `json:"ID"`
+	API           *webrtc.API `json:"-"`
+	Codec         string
 	VideoTrack    *webrtc.Track `json:"-"`
 	AudioTrack    *webrtc.Track `json:"-"`
 	VideoPipeline *gst.Pipeline `json:"-"`
 	AudioPipeline *gst.Pipeline `json:"-"`
-	SessionLock   sync.Mutex    `json:"-"`
 	Users         []User        `json:"Users"`
 }
 
@@ -26,13 +24,13 @@ func (s *Session) Start() {
 	for _, usr := range s.Users {
 		chans = append(chans, usr.ID)
 	}
+
 	// Create GStreamer Pipeline
-	s.VideoPipeline = gst.CreateVideoMixerPipeline(webrtc.VP8, chans)
+	s.VideoPipeline = gst.CreateVideoMixerPipeline(s.Codec, chans)
+
 	// Create GStreamer Pipeline
 	s.AudioPipeline = gst.CreateAudioMixerPipeline(webrtc.Opus, chans)
-	// Set Pipeline output
-	s.VideoPipeline.SetOutputTrack(s.VideoTrack)
-	s.AudioPipeline.SetOutputTrack(s.AudioTrack)
+
 	// Start Pipeline output
 	s.VideoPipeline.Start()
 	s.AudioPipeline.Start()
@@ -56,8 +54,21 @@ func (s *Session) Stop() {
 
 //Restart a Session with new Parameters
 func (s *Session) Restart() {
+	vTracks := []*webrtc.Track{}
+	if s.VideoPipeline != nil {
+		vTracks = s.VideoPipeline.GetOutputTracks()
+	}
+	aTracks := []*webrtc.Track{}
+	if s.AudioPipeline != nil {
+		aTracks = s.AudioPipeline.GetOutputTracks()
+	}
+
 	s.Stop()
 	s.Start()
+
+	s.VideoPipeline.SettingOutputTracks(vTracks)
+	s.AudioPipeline.SettingOutputTracks(aTracks)
+
 }
 
 //AddUser to Session and restart Pipeline

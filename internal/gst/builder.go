@@ -94,7 +94,7 @@ func gstGetDecoder(codecName string) string {
 	case webrtc.Opus:
 		chansrc += ", payload=96, encoding-name=OPUS ! rtpopusdepay ! decodebin "
 	case webrtc.VP9:
-		chansrc += " ! rtpvp9depay ! decodebin "
+		chansrc += " rtpvp9depay ! decodebin  "
 	case webrtc.H264:
 		chansrc += " ! rtph264depay ! decodebin "
 	case webrtc.G722:
@@ -108,7 +108,7 @@ func gstGetDecoder(codecName string) string {
 func gstGetEncoder(codecName string) (string, float32) {
 	switch codecName {
 	case webrtc.VP8:
-		return " ! vp8enc error-resilient=partitions keyframe-max-dist=30 buffer-size=0 auto-alt-ref=true cpu-used=5 deadline=1 ", videoClockRate
+		return " ! video/x-raw,format=I420 ! vp8enc error-resilient=partitions keyframe-max-dist=30 buffer-size=0 auto-alt-ref=true cpu-used=5 deadline=1 ", videoClockRate
 	case webrtc.VP9:
 		return " ! vp9enc ", videoClockRate
 	case webrtc.H264:

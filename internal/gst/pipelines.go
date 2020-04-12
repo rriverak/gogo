@@ -36,7 +36,7 @@ func CreateVideoMixerPipeline(codecName string, channels []string) *Pipeline {
 
 	// Get GStreamer Pipeline
 	gstreamerPipe := builder.Get()
-	Logger.Infof("[GStreamer] Generated VideoMixer Pipeline => \n %v \n", gstreamerPipe)
+	Logger.Debugf("[GStreamer] Generated VideoMixer Pipeline => \n %v \n", gstreamerPipe)
 
 	// Create the GPipeline
 	return CreatePipeline(codecName, gstreamerPipe, builder.GetClockRate())
@@ -60,7 +60,7 @@ func CreateAudioMixerPipeline(codecName string, channels []string) *Pipeline {
 
 	// Get GStreamer Pipeline
 	gstreamerPipe := builder.Get()
-	Logger.Infof("[GStreamer] Generated AudioMixer Pipeline => \n %v \n", gstreamerPipe)
+	Logger.Debugf("[GStreamer] Generated AudioMixer Pipeline => \n %v \n", gstreamerPipe)
 
 	return CreatePipeline(codecName, gstreamerPipe, builder.GetClockRate())
 }

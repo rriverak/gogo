@@ -58,6 +58,7 @@ window.createSession = (roomId, userName) => {
         el.id = "main-video"
         el.autoplay = true
         el.controls = true
+        el.muted = true
         el.onerror = (err) => { console.log(err) }
         el.onplaying = (ev) => { console.log(ev) }
         document.getElementById('remoteVideos').appendChild(el)

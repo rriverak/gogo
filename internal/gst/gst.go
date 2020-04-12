@@ -25,23 +25,28 @@ var Logger *logrus.Logger
 var pipelines = make(map[string]*Pipeline)
 var pipelinesLock sync.Mutex
 
-// Pipeline is a wrapper for a GStreamer Pipeline
+// Pipeline is a wrapper for a GStreamer  Pipeline
 type Pipeline struct {
-	Pipeline    *C.GstElement
-	outputTrack *webrtc.Track
-	id          string
-	codecName   string
-	clockRate   float32
+	Pipeline     *C.GstElement
+	outputTracks []*webrtc.Track
+	id           string
+	codecName    string
+	clockRate    float32
 }
 
-//SetOutputTrack set the Track
-func (p *Pipeline) SetOutputTrack(track *webrtc.Track) {
-	p.outputTrack = track
+//AddOutputTrack to the Track Stream
+func (p *Pipeline) AddOutputTrack(newTrack *webrtc.Track) {
+	p.outputTracks = append(p.outputTracks, newTrack)
 }
 
-//GetOutputTrack get the Track
-func (p *Pipeline) GetOutputTrack() *webrtc.Track {
-	return p.outputTrack
+//GetOutputTracks get the Tracks
+func (p *Pipeline) GetOutputTracks() []*webrtc.Track {
+	return p.outputTracks
+}
+
+//SettingOutputTracks set the Tracks
+func (p *Pipeline) SettingOutputTracks(tracks []*webrtc.Track) {
+	p.outputTracks = tracks
 }
 
 // Start starts the GStreamer Pipeline
@@ -56,8 +61,14 @@ func (p *Pipeline) Stop() {
 }
 
 //WriteSampleToOutputTrack to the OutputTrack
-func (p *Pipeline) WriteSampleToOutputTrack(s media.Sample) error {
-	return p.outputTrack.WriteSample(s)
+func (p *Pipeline) WriteSampleToOutputTrack(buffer []byte, samples uint32) error {
+	for _, track := range p.outputTracks {
+		err := track.WriteSample(media.Sample{Data: buffer, Samples: samples})
+		if err != nil {
+			fmt.Println(err)
+		}
+	}
+	return nil
 }
 
 // WriteSampleToInputSource writes a Buffer to a appsrc of the GStreamer Pipeline
@@ -100,6 +111,7 @@ func CreatePipeline(codecName string, pipelineStr string, clockRate float32) *Pi
 		codecName: codecName,
 		clockRate: clockRate,
 	}
+	pipeline.outputTracks = []*webrtc.Track{}
 	// Add new Pipeline
 	pipelines[pipeline.id] = pipeline
 	return pipeline
@@ -117,7 +129,7 @@ func goHandlePipelineOutputBuffer(buffer unsafe.Pointer, bufferLen C.int, durati
 		// Create Samples
 		samples := uint32(pipeline.clockRate * (float32(duration) / 1000000000))
 		// Write Samples to Pipeline Output Track
-		if err := pipeline.WriteSampleToOutputTrack(media.Sample{Data: C.GoBytes(buffer, bufferLen), Samples: samples}); err != nil && err != io.ErrClosedPipe {
+		if err := pipeline.WriteSampleToOutputTrack(C.GoBytes(buffer, bufferLen), samples); err != nil && err != io.ErrClosedPipe {
 			Logger.Error(err)
 		}
 	} else {
