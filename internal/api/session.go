@@ -79,6 +79,10 @@ func (s *SessionHandler) JoinSessionHandler(w http.ResponseWriter, r *http.Reque
 	// Get a Session
 	var session *rtc.Session = s.getSession(sessionID)
 
+	if session == nil {
+		WriteStatusConfict(w)
+		return
+	}
 	// Get the offer from Body
 	offer := webrtc.SessionDescription{}
 	body, _ := ioutil.ReadAll(r.Body)
