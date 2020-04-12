@@ -2,8 +2,8 @@
 A simple Video GroupCall Server.  
 Most of it is in Golang.  
 
-Based on the great `pion/web-rtc` and `GStreamer` for Video Processing.
-This GroupCall is use idea behinde MCU and Mix Video and Audio Stream together.  
+Based on the great `pion/web-rtc` and `GStreamer` for Video Processing.  
+This GroupCall is use the Idea behinde MCU and Mix Video and Audio Streams together.  
 
 ## Actions
 - Create a Room
@@ -38,4 +38,5 @@ Cross-Browsers Calls like `Safari - Chrome - Firefox` are Supported.
 - Chrome
 - Safari 13  
   
-
+## License
+[MIT](/LICENSE.md)
