@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/patrickmn/go-cache"
@@ -21,10 +20,6 @@ var peerConnectionConfig webrtc.Configuration = webrtc.Configuration{
 	},
 }
 
-const (
-	rtcpPLIInterval = time.Second * 1
-)
-
 //SessionHandler handles API Requests for Sessions
 type SessionHandler struct {
 	SessionRegister *cache.Cache
@@ -39,14 +34,43 @@ func (s *SessionHandler) RegisterSessionRoutes(r *mux.Router) {
 	sub.HandleFunc("/{id}/{user}", s.JoiningSessions).Methods("POST")
 }
 
+//getSessionKey formatted
+func (s *SessionHandler) getSessionKey(sessID string) string {
+	return fmt.Sprintf("session-%v", sessID)
+}
+
+//getSession Get from Cache or Create a new Session
+func (s *SessionHandler) getSession(sessID string, userName string) *rtc.Session {
+	var session *rtc.Session
+	sessKey := s.getSessionKey(sessID)
+	sess, sessionFound := s.SessionRegister.Get(sessKey)
+	if sessionFound {
+		Logger.Infof("User => %v join Session with Key => '%v' \n", userName, sessKey)
+		session = sess.(*rtc.Session)
+	} else {
+		Logger.Infof("User => %v create a new Session with Key => '%v' \n", userName, sessKey)
+		session = rtc.NewSession(sessKey)
+	}
+	return session
+}
+
+//saveSession Add the Session in Cache or Replace it.
+func (s *SessionHandler) saveSession(sessID string, session *rtc.Session) error {
+	var err error
+	if _, found := s.SessionRegister.Get(s.getSessionKey(sessID)); !found {
+		err = s.SessionRegister.Add(s.getSessionKey(sessID), session, cache.NoExpiration)
+	} else {
+		err = s.SessionRegister.Replace(s.getSessionKey(sessID), session, cache.NoExpiration)
+	}
+	if err != nil {
+		panic(err)
+	}
+	return err
+}
+
 //ListSessions Handles a HTTP Get to List all Sessions with Users
 func (s *SessionHandler) ListSessions(w http.ResponseWriter, r *http.Request) {
 	WriteJSON(w, s.SessionRegister.Items())
-}
-
-//GetSessionKey for Cache Repository
-func (s *SessionHandler) GetSessionKey(sessID string) string {
-	return fmt.Sprintf("session-%v", sessID)
 }
 
 //JoiningSessions Handles the Joining Offer
@@ -56,49 +80,36 @@ func (s *SessionHandler) JoiningSessions(w http.ResponseWriter, r *http.Request)
 	userName := mux.Vars(r)["user"]
 
 	// Get or Create a Session
-	var session *rtc.Session
-	sessKey := s.GetSessionKey(sessID)
-	sess, sessionFound := s.SessionRegister.Get(sessKey)
-	if sessionFound {
-		Logger.Infof("Join Session with Key => '%v' \n", sessKey)
-		session = sess.(*rtc.Session)
-	} else {
-		Logger.Infof("Create new Session with Key => '%v' \n", sessKey)
-		session = &rtc.Session{ID: sessID}
-	}
+	var session *rtc.Session = s.getSession(sessID, userName)
 
-	// Get the offer
+	// Get the offer from Body
 	offer := webrtc.SessionDescription{}
 	body, _ := ioutil.ReadAll(r.Body)
 	signal.Decode(string(body), &offer)
 
-	// Add User to List
+	// Create User from Session
 	newUser, err := session.CreateUser(userName, peerConnectionConfig, offer)
 
-	// Set the remote SessionDescription
+	// Set the remote SessionDescription for User
 	err = newUser.Peer.SetRemoteDescription(offer)
 	if err != nil {
 		panic(err)
 	}
 
-	// Create answer
+	// Create answer for User
 	answer, err := newUser.Peer.CreateAnswer(nil)
 	if err != nil {
 		panic(err)
 	}
 
-	// Sets the LocalDescription, and starts our UDP listeners
+	// Sets the LocalDescription, and starts our UDP listeners for User
 	err = newUser.Peer.SetLocalDescription(answer)
 	if err != nil {
 		panic(err)
 	}
 
-	// Add the Session in Cache or Replace it.
-	if _, found := s.SessionRegister.Get(s.GetSessionKey(sessID)); !found {
-		err = s.SessionRegister.Add(s.GetSessionKey(sessID), session, cache.NoExpiration)
-	} else {
-		err = s.SessionRegister.Replace(s.GetSessionKey(sessID), session, cache.NoExpiration)
-	}
+	// Save the current Session in Cache.
+	err = s.saveSession(sessID, session)
 	if err != nil {
 		panic(err)
 	}

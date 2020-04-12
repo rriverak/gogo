@@ -103,14 +103,21 @@ func (u *User) AudioOutput() *webrtc.Track {
 	return u.outAudioTrack
 }
 
-//OnUserDataChannel attach all known DataChannels
-func (u *User) OnUserDataChannel(session *Session) func(d *webrtc.DataChannel) {
-	return func(dc *webrtc.DataChannel) {
-		dc.OnOpen(func() {
-			Logger.Infof("User %v open a Channel => %v", u.Name, dc.Label())
-			u.DataChannels[dc.Label()] = dc
-			u.DataChannels[dc.Label()].SendText("OK!")
-		})
+//OnUserSessionMessage attach all known DataChannels
+func (u *User) OnUserSessionMessage(session *Session) func(m webrtc.DataChannelMessage) {
+	return func(message webrtc.DataChannelMessage) {
+		msg := string(message.Data)
+		switch msg {
+		case "open":
+			Logger.Infof("User => %v sends => open", u.Name)
+			break
+		case "close":
+			Logger.Infof("User => %v sends => close", u.Name)
+			break
+		default:
+			Logger.Infof("User => %v sends => %v", u.Name, msg)
+			break
+		}
 	}
 }
 

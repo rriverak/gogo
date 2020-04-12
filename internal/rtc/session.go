@@ -5,6 +5,11 @@ import (
 	"github.com/rriverak/gogo/internal/gst"
 )
 
+//NewSession create a new Session
+func NewSession(ID string) *Session {
+	return &Session{ID: ID}
+}
+
 //Session is a GroupVideo Call
 type Session struct {
 	ID            string        `json:"ID"`
@@ -73,11 +78,17 @@ func (s *Session) CreateUser(name string, peerConnectionConfig webrtc.Configurat
 	// Register Session Auto-Leave on Timeout
 	newUser.Peer.OnConnectionStateChange(newUser.OnUserConnectionStateChangedHandler(s))
 	s.Codec = newUser.Codec
-	// Register DataChannels
-	newUser.Peer.OnDataChannel(newUser.OnUserDataChannel(s))
-	// Add User to Session
-	s.RegisterUserDataChannel(newUser)
+	// Register Session DataChannel
+	var id uint16 = 1
+	negotiated := false
+	opt := webrtc.DataChannelInit{Negotiated: &negotiated, ID: &id}
+	dc, err := newUser.Peer.CreateDataChannel("session", &opt)
+	if err != nil {
+		Logger.Error(err)
+	}
+	dc.OnMessage(newUser.OnUserSessionMessage(s))
 
+	// Add User to Session
 	s.AddUser(*newUser)
 	return newUser, nil
 }
@@ -92,38 +103,6 @@ func (s *Session) AddUser(newUser User) {
 
 	// Restart Session Pipeline
 	s.Restart()
-}
-
-// RegisterUserDataChannel sadass
-func (s *Session) RegisterUserDataChannel(user *User) error {
-	// DataChannel for Session Created
-	dc, err := s.createSessionDataChannel(user)
-	if err != nil {
-		return err
-	}
-	user.DataChannels["session"] = dc
-	return nil
-}
-
-func (s *Session) createSessionDataChannel(user *User) (*webrtc.DataChannel, error) {
-	var id uint16 = 1
-	negotiated := false
-	opt := webrtc.DataChannelInit{Negotiated: &negotiated, ID: &id}
-	dc, err := user.Peer.CreateDataChannel("session", &opt)
-	if err != nil {
-		Logger.Error(err)
-	}
-	dc.OnMessage(func(msg webrtc.DataChannelMessage) {
-		message := string(msg.Data)
-		Logger.Infof("User => %s send a Message on Session Channel => '%s'", user.Name, message)
-	})
-	dc.OnOpen(func() {
-		err = dc.SendText("OK!")
-		if err != nil {
-			Logger.Error(err)
-		}
-	})
-	return dc, nil
 }
 
 //RemoveUser from with ID from Session and restart Pipeline
