@@ -39,4 +39,4 @@ Cross-Browsers Calls like `Safari - Chrome - Firefox` are Supported.
 - Safari 13  
   
 ## License
-[MIT](/LICENSE.md)
+[MIT](/LICENSE)
