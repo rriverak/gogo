@@ -1,6 +1,7 @@
 package rtc
 
 import (
+	"io"
 	"math/rand"
 	"time"
 
@@ -103,19 +104,38 @@ func (u *User) AudioOutput() *webrtc.Track {
 	return u.outAudioTrack
 }
 
+//Anwser generates the Anwser for the SDP Handshake
+func (u *User) Anwser(offer webrtc.SessionDescription) webrtc.SessionDescription {
+	// Set the remote SessionDescription for User
+	err := u.Peer.SetRemoteDescription(offer)
+	if err != nil {
+		panic(err)
+	}
+
+	// Create answer for User
+	answer, err := u.Peer.CreateAnswer(nil)
+	if err != nil {
+		panic(err)
+	}
+
+	// Sets the LocalDescription, and starts our UDP listeners for User
+	err = u.Peer.SetLocalDescription(answer)
+	if err != nil {
+		panic(err)
+	}
+	return answer
+}
+
 //OnUserSessionMessage attach all known DataChannels
 func (u *User) OnUserSessionMessage(session *Session) func(m webrtc.DataChannelMessage) {
 	return func(message webrtc.DataChannelMessage) {
 		msg := string(message.Data)
+		Logger.Infof("User => %v sends to Session => '%v'", u.Name, msg)
 		switch msg {
 		case "open":
-			Logger.Infof("User => %v sends => open", u.Name)
 			break
 		case "close":
-			Logger.Infof("User => %v sends => close", u.Name)
-			break
-		default:
-			Logger.Infof("User => %v sends => %v", u.Name, msg)
+			session.DisconnectUser(u) // Remove from Session
 			break
 		}
 	}
@@ -131,8 +151,8 @@ func (u *User) OnUserConnectionStateChangedHandler(session *Session) func(f webr
 	}
 }
 
-//RemoteTrackHandler dasdas
-func (u *User) RemoteTrackHandler(session *Session) func(*webrtc.Track, *webrtc.RTPReceiver) {
+//OnRemoteTrackHandler dasdas
+func (u *User) OnRemoteTrackHandler(session *Session) func(*webrtc.Track, *webrtc.RTPReceiver) {
 	return func(remoteTrack *webrtc.Track, receiver *webrtc.RTPReceiver) {
 		Logger.Infof("User => %v send a Track with Codec: %v Payloadtyp: %v", u.Name, remoteTrack.Codec().Name, remoteTrack.PayloadType())
 		if remoteTrack.PayloadType() == u.VideOutput().PayloadType() {
@@ -143,7 +163,11 @@ func (u *User) RemoteTrackHandler(session *Session) func(*webrtc.Track, *webrtc.
 				ticker := time.NewTicker(rtcpPLIInterval)
 				for range ticker.C {
 					if rtcpSendErr := u.Peer.WriteRTCP([]rtcp.Packet{&rtcp.PictureLossIndication{MediaSSRC: remoteTrack.SSRC()}}); rtcpSendErr != nil {
-						Logger.Error(rtcpSendErr)
+						if rtcpSendErr == io.ErrClosedPipe {
+							ticker.Stop()
+						} else {
+							Logger.Errorf("rtcp PLI Error: %v", rtcpSendErr)
+						}
 					}
 				}
 			}()
@@ -154,7 +178,10 @@ func (u *User) RemoteTrackHandler(session *Session) func(*webrtc.Track, *webrtc.
 				// Read remote Buffer
 				i, readErr := remoteTrack.Read(rtpBuf)
 				if readErr != nil {
-					Logger.Error(readErr)
+					if readErr == io.EOF {
+						break
+					}
+					Logger.Errorf("Read on RemoteTrack Error: %v", readErr)
 				} else {
 					// Push RTP Samples to GStreamer Pipeline with specific appsrc (user_id)
 					session.VideoPipeline.WriteSampleToInputSource(rtpBuf[:i], u.ID)
@@ -168,8 +195,10 @@ func (u *User) RemoteTrackHandler(session *Session) func(*webrtc.Track, *webrtc.
 				// Read remote Buffer
 				i, readErr := remoteTrack.Read(rtpBuf)
 				if readErr != nil {
-					Logger.Error(readErr)
-					break
+					if readErr == io.EOF {
+						break
+					}
+					Logger.Errorf("Read on RemoteTrack Error: %v", readErr)
 				} else {
 					// Push RTP Samples to GStreamer Pipeline with specific appsrc (user_id)
 					session.AudioPipeline.WriteSampleToInputSource(rtpBuf[:i], u.ID)

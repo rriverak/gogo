@@ -65,7 +65,7 @@ func (p *Pipeline) WriteSampleToOutputTrack(buffer []byte, samples uint32) error
 	for _, track := range p.outputTracks {
 		err := track.WriteSample(media.Sample{Data: buffer, Samples: samples})
 		if err != nil {
-			Logger.Errorf("WriteSampleToOutputTrack => %v", track.ID(), err)
+			return err
 		}
 	}
 	return nil
@@ -130,7 +130,7 @@ func goHandlePipelineOutputBuffer(buffer unsafe.Pointer, bufferLen C.int, durati
 		samples := uint32(pipeline.clockRate * (float32(duration) / 1000000000))
 		// Write Samples to Pipeline Output Track
 		if err := pipeline.WriteSampleToOutputTrack(C.GoBytes(buffer, bufferLen), samples); err != nil && err != io.ErrClosedPipe {
-			Logger.Error(err)
+			Logger.Errorf("Pipeline Out Error: %v", err)
 		}
 	} else {
 		Logger.Errorf("Discarding buffer! No pipeline with ID => '%s' found... \n", pipelineIDstr)

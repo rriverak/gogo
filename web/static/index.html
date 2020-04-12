@@ -49,8 +49,21 @@
             <div class="col-lg-12 hideAfterStart">
                 <h3>...or Join a Running Session</h3>
                 <div id="sessions">
-
+                    <button class="btn btn-default" onclick="window.loadSessions()">Reload</button>
                 </div>
+
+                <table class="table ">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Users</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbodySession">
+                        
+                    </tbody>
+                </table>
             </div>
             <div id="logspanel"  class="col-lg-12 showAfterStart">
                 <div class="panel panel-default">

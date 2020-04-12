@@ -4,24 +4,49 @@ var log = msg => {
     document.getElementById('logs').innerHTML += '<li>' + msg + '</li>'
   }
 }
-var loadSessions = () => {
+window.loadSessions = () => {
   fetch('/api/sessions/', {
     method: 'GET',
   }).then((resp) => {
     resp.json().then(data => {
       try {
+        document.getElementById("tbodySession").innerHTML = ""
         for (let index = 0; index < Object.keys(data).length; index++) {
           const roomKey = Object.keys(data)[index];
           const roomData = data[roomKey].Object;
 
-          var el = document.createElement("button")
-          el.setAttribute("class", "btn btn-default hideAfterStart")
-          el.innerHTML = roomData.ID + " <span class=\"badge\">" + roomData.Users.length + "</span>";
-          el.onclick = () => {
+          var btnJoin = document.createElement("button")
+          btnJoin.setAttribute("class", "btn btn-default btn-sm")
+          btnJoin.innerText = "Join";
+          btnJoin.onclick = () => {
             const userName = document.getElementById('txtUsername').value;
             window.createSession(roomData.ID, userName)
           };
-          document.getElementById('sessions').appendChild(el)
+
+          var btnDelete = document.createElement("button")
+          btnDelete.setAttribute("class", "btn btn-default btn-sm")
+          btnDelete.innerText = "Delete";
+          btnDelete.onclick = () => {
+            const userName = document.getElementById('txtUsername').value;
+            window.deleteSession(roomData.ID)
+          };
+
+          var tr = document.createElement("tr");
+          var tdID = document.createElement("td");
+          var tdUsers = document.createElement("td");
+          var tdActions = document.createElement("td");
+
+          tdID.innerText = roomData.ID
+          tdUsers.innerText = roomData.Users.length
+          tdActions.appendChild(btnJoin)
+          tdActions.appendChild(btnDelete)
+
+          tr.appendChild(tdID)
+          tr.appendChild(tdUsers)
+          tr.appendChild(tdActions)
+
+          document.getElementById("tbodySession").appendChild(tr)
+          //document.getElementById('sessions').appendChild(el)
         }
       } catch (e) {
         alert(e)
@@ -122,6 +147,7 @@ window.createSession = (roomId, userName) => {
   window.leaveSession = () => {
     sessionSendChannel.send("close")
     pc.close();
+    window.location.reload()
   }
 
   window.startSession = () => {
@@ -159,4 +185,10 @@ window.createRoom = () => {
   window.createSession(roomName, userName)
 }
 
-loadSessions();
+window.deleteSession = (roomId) =>{
+  fetch("/api/sessions/" + roomId.replace("session-")  ,{
+    method: 'DELETE',
+  }).then(window.loadSessions())
+}
+
+window.loadSessions();

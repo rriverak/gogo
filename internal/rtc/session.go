@@ -3,11 +3,12 @@ package rtc
 import (
 	"github.com/pion/webrtc/v2"
 	"github.com/rriverak/gogo/internal/gst"
+	"github.com/rriverak/gogo/internal/utils"
 )
 
 //NewSession create a new Session
-func NewSession(ID string) *Session {
-	return &Session{ID: ID}
+func NewSession() *Session {
+	return &Session{ID: utils.RandSeq(5)}
 }
 
 //Session is a GroupVideo Call
@@ -74,7 +75,7 @@ func (s *Session) CreateUser(name string, peerConnectionConfig webrtc.Configurat
 		return nil, err
 	}
 	// Register Users RemoteTrack with Session
-	newUser.Peer.OnTrack(newUser.RemoteTrackHandler(s))
+	newUser.Peer.OnTrack(newUser.OnRemoteTrackHandler(s))
 	// Register Session Auto-Leave on Timeout
 	newUser.Peer.OnConnectionStateChange(newUser.OnUserConnectionStateChangedHandler(s))
 	s.Codec = newUser.Codec
@@ -122,5 +123,12 @@ func (s *Session) RemoveUser(usrID string) {
 		s.Restart()
 	} else {
 		s.Stop()
+		Logger.Info("Session Stoped.")
 	}
+}
+
+// DisconnectUser a User from Session
+func (s *Session) DisconnectUser(user *User) {
+	s.RemoveUser(user.ID) // Remove from Session
+	user.Peer.Close()     // Close peer Connection
 }

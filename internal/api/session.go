@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"io/ioutil"
 	"net/http"
 
@@ -31,41 +30,46 @@ func (s *SessionHandler) RegisterSessionRoutes(r *mux.Router) {
 	s.SessionRegister = cache.New(cache.NoExpiration, cache.NoExpiration)
 	sub := r.PathPrefix("/api/sessions").Subrouter()
 	sub.HandleFunc("/", s.ListSessions).Methods("GET")
-	sub.HandleFunc("/{id}/{user}", s.JoiningSessions).Methods("POST")
-}
-
-//getSessionKey formatted
-func (s *SessionHandler) getSessionKey(sessID string) string {
-	return fmt.Sprintf("session-%v", sessID)
+	sub.HandleFunc("/{id}", s.DeleteSession).Methods("DELETE")
+	sub.HandleFunc("/{id}/{user}", s.JoinOrCreateSessions).Methods("POST")
 }
 
 //getSession Get from Cache or Create a new Session
-func (s *SessionHandler) getSession(sessID string, userName string) *rtc.Session {
+func (s *SessionHandler) getSession(sessionID string) *rtc.Session {
 	var session *rtc.Session
-	sessKey := s.getSessionKey(sessID)
-	sess, sessionFound := s.SessionRegister.Get(sessKey)
+	sess, sessionFound := s.SessionRegister.Get(sessionID)
 	if sessionFound {
-		Logger.Infof("User => %v join Session with Key => '%v' \n", userName, sessKey)
 		session = sess.(*rtc.Session)
 	} else {
-		Logger.Infof("User => %v create a new Session with Key => '%v' \n", userName, sessKey)
-		session = rtc.NewSession(sessKey)
+		session = rtc.NewSession()
 	}
 	return session
 }
 
 //saveSession Add the Session in Cache or Replace it.
-func (s *SessionHandler) saveSession(sessID string, session *rtc.Session) error {
+func (s *SessionHandler) saveSession(session *rtc.Session) error {
 	var err error
-	if _, found := s.SessionRegister.Get(s.getSessionKey(sessID)); !found {
-		err = s.SessionRegister.Add(s.getSessionKey(sessID), session, cache.NoExpiration)
+	if _, found := s.SessionRegister.Get(session.ID); !found {
+		err = s.SessionRegister.Add(session.ID, session, cache.NoExpiration)
 	} else {
-		err = s.SessionRegister.Replace(s.getSessionKey(sessID), session, cache.NoExpiration)
-	}
-	if err != nil {
-		panic(err)
+		err = s.SessionRegister.Replace(session.ID, session, cache.NoExpiration)
 	}
 	return err
+}
+
+//removeSession remove the Session from Cache if found. Returns true if found.
+func (s *SessionHandler) removeSession(sessionID string) bool {
+	if sess, found := s.SessionRegister.Get(sessionID); found {
+		session := sess.(*rtc.Session)
+		// Disconnect all Users
+		for _, usr := range session.Users {
+			session.DisconnectUser(&usr)
+		}
+		// Remove Session from Cache
+		s.SessionRegister.Delete(sessionID)
+		return true
+	}
+	return false
 }
 
 //ListSessions Handles a HTTP Get to List all Sessions with Users
@@ -73,14 +77,26 @@ func (s *SessionHandler) ListSessions(w http.ResponseWriter, r *http.Request) {
 	WriteJSON(w, s.SessionRegister.Items())
 }
 
-//JoiningSessions Handles the Joining Offer
-func (s *SessionHandler) JoiningSessions(w http.ResponseWriter, r *http.Request) {
+//DeleteSession Handles a HTTP DELETE to Delete a Sessions and drop there Users
+func (s *SessionHandler) DeleteSession(w http.ResponseWriter, r *http.Request) {
+	sessKey := mux.Vars(r)["id"]
+	if s.removeSession(sessKey) {
+		WriteStatusOK(w)
+	} else {
+		Logger.Infof("Session not found! '%v'", sessKey)
+		WriteStatusNotFound(w)
+	}
+}
+
+//JoinOrCreateSessions Handles the Joining Offer
+func (s *SessionHandler) JoinOrCreateSessions(w http.ResponseWriter, r *http.Request) {
 	// HTTP VARs
-	sessID := mux.Vars(r)["id"]
+	sessionID := mux.Vars(r)["id"]
 	userName := mux.Vars(r)["user"]
 
 	// Get or Create a Session
-	var session *rtc.Session = s.getSession(sessID, userName)
+	var session *rtc.Session = s.getSession(sessionID)
+	Logger.Infof("User => %v Create Session with ID => '%v' \n", userName, sessionID)
 
 	// Get the offer from Body
 	offer := webrtc.SessionDescription{}
@@ -89,27 +105,9 @@ func (s *SessionHandler) JoiningSessions(w http.ResponseWriter, r *http.Request)
 
 	// Create User from Session
 	newUser, err := session.CreateUser(userName, peerConnectionConfig, offer)
-
-	// Set the remote SessionDescription for User
-	err = newUser.Peer.SetRemoteDescription(offer)
-	if err != nil {
-		panic(err)
-	}
-
-	// Create answer for User
-	answer, err := newUser.Peer.CreateAnswer(nil)
-	if err != nil {
-		panic(err)
-	}
-
-	// Sets the LocalDescription, and starts our UDP listeners for User
-	err = newUser.Peer.SetLocalDescription(answer)
-	if err != nil {
-		panic(err)
-	}
-
+	answer := newUser.Anwser(offer)
 	// Save the current Session in Cache.
-	err = s.saveSession(sessID, session)
+	err = s.saveSession(session)
 	if err != nil {
 		panic(err)
 	}
