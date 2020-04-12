@@ -36,6 +36,10 @@
                         <label for="exampleInputName2">Name:</label>
                         <input type="text" class="form-control" id="txtUsername" placeholder="User1">
                     </div>
+                </div>
+            </div>
+            <div class="col-lg-12 hideAfterStart">
+                <div id="sessions" class="form-inline">
                     <h3>Create a new Room...</h3>
                     <div class="form-group">
                         <label for="exampleInputName2">Room:</label>
@@ -44,18 +48,14 @@
                     <button class="createSessionButton btn btn-default" onclick="window.createRoom()">
                         Create a Room
                     </button>
-                </div>
-            </div>
-            <div class="col-lg-12 hideAfterStart">
-                <h3>...or Join a Running Session</h3>
-                <div id="sessions">
                     <button class="btn btn-default" onclick="window.loadSessions()">Reload</button>
                 </div>
-
+                <h3>...or Join a Running Session</h3>
                 <table class="table ">
                     <thead>
                         <tr>
                             <th>ID</th>
+                            <th>Name</th>
                             <th>Users</th>
                             <th>Actions</th>
                         </tr>

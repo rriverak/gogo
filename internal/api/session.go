@@ -29,9 +29,73 @@ type SessionHandler struct {
 func (s *SessionHandler) RegisterSessionRoutes(r *mux.Router) {
 	s.SessionRegister = cache.New(cache.NoExpiration, cache.NoExpiration)
 	sub := r.PathPrefix("/api/sessions").Subrouter()
-	sub.HandleFunc("/", s.ListSessions).Methods("GET")
-	sub.HandleFunc("/{id}", s.DeleteSession).Methods("DELETE")
-	sub.HandleFunc("/{id}/{user}", s.JoinOrCreateSessions).Methods("POST")
+	sub.HandleFunc("/", s.ListSessionsHandler).Methods("GET")
+	sub.HandleFunc("/{id}", s.DeleteSessionHandler).Methods("DELETE")
+	sub.HandleFunc("/{name}", s.CreateSessionHandler).Methods("POST")
+	sub.HandleFunc("/{id}/join/{user}", s.JoinSessionHandler).Methods("POST")
+}
+
+//ListSessionsHandler Handles a HTTP Get to List all Sessions with Users
+func (s *SessionHandler) ListSessionsHandler(w http.ResponseWriter, r *http.Request) {
+	WriteJSON(w, s.SessionRegister.Items())
+}
+
+//CreateSessionHandler Create a new Session if not exists
+func (s *SessionHandler) CreateSessionHandler(w http.ResponseWriter, r *http.Request) {
+	// HTTP VARs
+	sessionName := mux.Vars(r)["name"]
+
+	// Create Session
+	session := rtc.NewSession()
+	session.Name = sessionName
+
+	// Save the Session in Cache.
+	err := s.saveSession(session)
+	if err != nil {
+		panic(err)
+	}
+
+	Logger.Infof("Create Session with ID => '%v'", session.ID)
+	WriteStatusOK(w)
+}
+
+//DeleteSessionHandler Handles a HTTP DELETE to Delete a Sessions and drop there Users
+func (s *SessionHandler) DeleteSessionHandler(w http.ResponseWriter, r *http.Request) {
+	sessionID := mux.Vars(r)["id"]
+	if s.removeSession(sessionID) {
+		Logger.Infof("Delete Session with ID => '%v'", sessionID)
+		WriteStatusOK(w)
+	} else {
+		WriteStatusNotFound(w)
+	}
+}
+
+//JoinSessionHandler Handles the Joining Offer
+func (s *SessionHandler) JoinSessionHandler(w http.ResponseWriter, r *http.Request) {
+	// HTTP VARs
+	sessionID := mux.Vars(r)["id"]
+	userName := mux.Vars(r)["user"]
+
+	// Get a Session
+	var session *rtc.Session = s.getSession(sessionID)
+
+	// Get the offer from Body
+	offer := webrtc.SessionDescription{}
+	body, _ := ioutil.ReadAll(r.Body)
+	signal.Decode(string(body), &offer)
+
+	// Create User from Session
+	newUser, err := session.CreateUser(userName, peerConnectionConfig, offer)
+	answer := newUser.Anwser(offer)
+
+	// Save the current Session in Cache.
+	err = s.saveSession(session)
+	if err != nil {
+		panic(err)
+	}
+
+	// Write Awnser to Client
+	WriteJSON(w, answer)
 }
 
 //getSession Get from Cache or Create a new Session
@@ -40,8 +104,6 @@ func (s *SessionHandler) getSession(sessionID string) *rtc.Session {
 	sess, sessionFound := s.SessionRegister.Get(sessionID)
 	if sessionFound {
 		session = sess.(*rtc.Session)
-	} else {
-		session = rtc.NewSession()
 	}
 	return session
 }
@@ -70,48 +132,4 @@ func (s *SessionHandler) removeSession(sessionID string) bool {
 		return true
 	}
 	return false
-}
-
-//ListSessions Handles a HTTP Get to List all Sessions with Users
-func (s *SessionHandler) ListSessions(w http.ResponseWriter, r *http.Request) {
-	WriteJSON(w, s.SessionRegister.Items())
-}
-
-//DeleteSession Handles a HTTP DELETE to Delete a Sessions and drop there Users
-func (s *SessionHandler) DeleteSession(w http.ResponseWriter, r *http.Request) {
-	sessKey := mux.Vars(r)["id"]
-	if s.removeSession(sessKey) {
-		WriteStatusOK(w)
-	} else {
-		Logger.Infof("Session not found! '%v'", sessKey)
-		WriteStatusNotFound(w)
-	}
-}
-
-//JoinOrCreateSessions Handles the Joining Offer
-func (s *SessionHandler) JoinOrCreateSessions(w http.ResponseWriter, r *http.Request) {
-	// HTTP VARs
-	sessionID := mux.Vars(r)["id"]
-	userName := mux.Vars(r)["user"]
-
-	// Get or Create a Session
-	var session *rtc.Session = s.getSession(sessionID)
-	Logger.Infof("User => %v Create Session with ID => '%v' \n", userName, sessionID)
-
-	// Get the offer from Body
-	offer := webrtc.SessionDescription{}
-	body, _ := ioutil.ReadAll(r.Body)
-	signal.Decode(string(body), &offer)
-
-	// Create User from Session
-	newUser, err := session.CreateUser(userName, peerConnectionConfig, offer)
-	answer := newUser.Anwser(offer)
-	// Save the current Session in Cache.
-	err = s.saveSession(session)
-	if err != nil {
-		panic(err)
-	}
-
-	// Write Awnser to Client
-	WriteJSON(w, answer)
 }

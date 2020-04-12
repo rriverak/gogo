@@ -14,6 +14,7 @@ func NewSession() *Session {
 //Session is a GroupVideo Call
 type Session struct {
 	ID            string        `json:"ID"`
+	Name          string        `json:"Name"`
 	API           *webrtc.API   `json:"-"`
 	Codec         string        `json:"Codec"`
 	VideoPipeline *gst.Pipeline `json:"-"`

@@ -20,7 +20,7 @@ window.loadSessions = () => {
           btnJoin.innerText = "Join";
           btnJoin.onclick = () => {
             const userName = document.getElementById('txtUsername').value;
-            window.createSession(roomData.ID, userName)
+            window.joinSession(roomData.ID, userName)
           };
 
           var btnDelete = document.createElement("button")
@@ -33,15 +33,20 @@ window.loadSessions = () => {
 
           var tr = document.createElement("tr");
           var tdID = document.createElement("td");
+          var tdName = document.createElement("td");
           var tdUsers = document.createElement("td");
           var tdActions = document.createElement("td");
-
+          var divActionGroup = document.createElement("td");
+          divActionGroup.setAttribute("class", "btn-group")
           tdID.innerText = roomData.ID
-          tdUsers.innerText = roomData.Users.length
-          tdActions.appendChild(btnJoin)
-          tdActions.appendChild(btnDelete)
+          tdName.innerText = roomData.Name
+          tdUsers.innerText = roomData.Users ? roomData.Users.length : 0;
+          tdActions.appendChild(divActionGroup)
+          divActionGroup.appendChild(btnJoin)
+          divActionGroup.appendChild(btnDelete)
 
           tr.appendChild(tdID)
+          tr.appendChild(tdName)
           tr.appendChild(tdUsers)
           tr.appendChild(tdActions)
 
@@ -55,7 +60,11 @@ window.loadSessions = () => {
   });
 };
 
-window.createSession = (roomId, userName) => {
+window.joinSession = (roomId, userName) => {
+  if (!userName || userName.length == 0){
+    alert("Username is required!")
+    return;
+  }
   document.getElementById('roomName').innerText = roomId;
   let dc = null;
   let pc = new RTCPeerConnection({
@@ -145,14 +154,19 @@ window.createSession = (roomId, userName) => {
     }).catch((msg) => { log; })
 
   window.leaveSession = () => {
-    sessionSendChannel.send("close")
-    pc.close();
-    window.location.reload()
+    
+    try{
+      sessionSendChannel.send("close")
+      pc.close();
+    }finally{
+      window.location.reload()
+    }
   }
 
   window.startSession = () => {
+
     document.getElementById('logspanel').style = "display: block;";
-    fetch('/api/sessions/' + roomId + '/' + userName, {
+    fetch('/api/sessions/' + roomId + '/join/' + userName, {
       method: 'POST',
       body: btoa(JSON.stringify(pc.localDescription))
     }).then((resp) => {
@@ -180,15 +194,21 @@ window.createSession = (roomId, userName) => {
 
 
 window.createRoom = () => {
-  const userName = document.getElementById('txtUsername').value;
   const roomName = document.getElementById('txtRoom').value;
-  window.createSession(roomName, userName)
+  if (!roomName || roomName.length == 0){
+    alert("Room Name is required!")
+    return;
+  }
+  fetch("/api/sessions/" + roomName  ,{
+    method: 'POST',
+  }).then(()=>window.loadSessions())
+
 }
 
 window.deleteSession = (roomId) =>{
-  fetch("/api/sessions/" + roomId.replace("session-")  ,{
+  fetch("/api/sessions/" + roomId  ,{
     method: 'DELETE',
-  }).then(window.loadSessions())
+  }).then(()=>window.loadSessions())
 }
 
 window.loadSessions();

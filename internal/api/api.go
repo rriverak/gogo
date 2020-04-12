@@ -47,6 +47,11 @@ func WriteStatusNotFound(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusNotFound)
 }
 
+//WriteStatusConfict to Response Header
+func WriteStatusConfict(w http.ResponseWriter) {
+	w.WriteHeader(http.StatusConflict)
+}
+
 //WriteStatusError to Response Header
 func WriteStatusError(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusInternalServerError)

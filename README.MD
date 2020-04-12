@@ -1,8 +1,15 @@
 # [WIP] GoGo
 A simple Video GroupCall Server.  
-Most of it is written in Golang.  
+Most of it is in Golang.  
 
 Based on the great `pion/web-rtc` and `GStreamer` for Video Processing.
+This GroupCall is use idea behinde MCU and Mix Video and Audio Stream together.  
+
+## Actions
+- Create a Room
+- Join a Room
+- Leave a Room
+- Delete a Room
 
 ## Load & Run
 ```bash
@@ -14,28 +21,21 @@ go run -v ./cmd/server/main.go
 Open in Browser http://localhost:8080/
 
 ## Code-Support
+In this Version only Users with the same Codec in a Session are able to Join.  
+Currently is the preferred Codec `VP8`. This Codec is a widely used Codec and we have `h264` as a fallback.
 ### Video
 - VP8
-- VP9
+- VP9 (Work in Progress)
 - H264
 ### Audio
 - Opus
+  
+## Browsers
+Cross-Browsers Calls like `Safari - Chrome - Firefox` are Supported.
 
-## Todo
-### App
-- [ ] Extend Config 
+### Supported
+- Firefox
+- Chrome
+- Safari 13  
+  
 
-### UI
-- [x] Vanilla Test UI
-- [ ] Anular WebUI
-- [ ] Stenciljs / Ionic PWA
-- [ ] Health / Status Page
-
-### VideoCall
-- [x] VideoMixer
-- [x] AudioMixer 
-- [ ] User´s name instead of ID in Video Overlay
-- [ ] User´s AudioTrack not on Server. 
-
-### WebAPI
-- [ ] Authentication
