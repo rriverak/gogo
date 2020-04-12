@@ -7,11 +7,9 @@ import (
 
 //Session is a GroupVideo Call
 type Session struct {
-	ID            string      `json:"ID"`
-	API           *webrtc.API `json:"-"`
-	Codec         string
-	VideoTrack    *webrtc.Track `json:"-"`
-	AudioTrack    *webrtc.Track `json:"-"`
+	ID            string        `json:"ID"`
+	API           *webrtc.API   `json:"-"`
+	Codec         string        `json:"Codec"`
 	VideoPipeline *gst.Pipeline `json:"-"`
 	AudioPipeline *gst.Pipeline `json:"-"`
 	Users         []User        `json:"Users"`
@@ -63,11 +61,29 @@ func (s *Session) Restart() {
 	s.Start()
 }
 
-//AddUser to Session and restart Pipeline
-func (s *Session) AddUser(newUser User) {
+// CreateUser in the Session
+func (s *Session) CreateUser(name string, peerConnectionConfig webrtc.Configuration, offer webrtc.SessionDescription) (*User, error) {
+	// Create New User with Peer
+	newUser, err := NewUser(name, peerConnectionConfig, offer)
+	if err != nil {
+		return nil, err
+	}
 	// Register Users RemoteTrack with Session
 	newUser.Peer.OnTrack(newUser.RemoteTrackHandler(s))
+	// Register Session Auto-Leave on Timeout
+	newUser.Peer.OnConnectionStateChange(newUser.OnUserConnectionStateChangedHandler(s))
+	s.Codec = newUser.Codec
+	// Register DataChannels
+	newUser.Peer.OnDataChannel(newUser.OnUserDataChannel(s))
+	// Add User to Session
+	s.RegisterUserDataChannel(newUser)
 
+	s.AddUser(*newUser)
+	return newUser, nil
+}
+
+//AddUser to Session and restart Pipeline
+func (s *Session) AddUser(newUser User) {
 	// Add user to Collection
 	if s.Users == nil {
 		s.Users = make([]User, 0)
@@ -78,14 +94,46 @@ func (s *Session) AddUser(newUser User) {
 	s.Restart()
 }
 
-//RemoveUser from Session and restart Pipeline
-func (s *Session) RemoveUser(userName string) {
+// RegisterUserDataChannel sadass
+func (s *Session) RegisterUserDataChannel(user *User) error {
+	// DataChannel for Session Created
+	dc, err := s.createSessionDataChannel(user)
+	if err != nil {
+		return err
+	}
+	user.DataChannels["session"] = dc
+	return nil
+}
+
+func (s *Session) createSessionDataChannel(user *User) (*webrtc.DataChannel, error) {
+	var id uint16 = 1
+	negotiated := false
+	opt := webrtc.DataChannelInit{Negotiated: &negotiated, ID: &id}
+	dc, err := user.Peer.CreateDataChannel("session", &opt)
+	if err != nil {
+		Logger.Error(err)
+	}
+	dc.OnMessage(func(msg webrtc.DataChannelMessage) {
+		message := string(msg.Data)
+		Logger.Infof("User => %s send a Message on Session Channel => '%s'", user.Name, message)
+	})
+	dc.OnOpen(func() {
+		err = dc.SendText("OK!")
+		if err != nil {
+			Logger.Error(err)
+		}
+	})
+	return dc, nil
+}
+
+//RemoveUser from with ID from Session and restart Pipeline
+func (s *Session) RemoveUser(usrID string) {
 	if s.Users == nil {
 		s.Users = make([]User, 0)
 	}
 	tmpUsers := []User{}
 	for _, usr := range s.Users {
-		if usr.Name != userName {
+		if usr.ID != usrID {
 			tmpUsers = append(tmpUsers, usr)
 		}
 	}

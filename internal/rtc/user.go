@@ -17,6 +17,13 @@ func NewUser(name string, peerConnectionConfig webrtc.Configuration, offer webrt
 	customPayloadType, codec := signal.RegisterCodecFromSDPOffer(&media, offer.SDP)
 	api := webrtc.NewAPI(webrtc.WithMediaEngine(media))
 
+	for _, cdec := range media.GetCodecsByKind(webrtc.RTPCodecTypeVideo) {
+		Logger.Infof("User => %v offer => Video Codec: %v PayloadType: %v Clock: %v", name, cdec.Name, cdec.PayloadType, cdec.ClockRate)
+	}
+	for _, cdec := range media.GetCodecsByKind(webrtc.RTPCodecTypeAudio) {
+		Logger.Infof("User => %v offer => Audio Codec: %v PayloadType: %v Clock: %v", name, cdec.Name, cdec.PayloadType, cdec.ClockRate)
+	}
+
 	// Create a PeerConnection
 	pc, err := api.NewPeerConnection(peerConnectionConfig)
 	if err != nil {
@@ -24,13 +31,14 @@ func NewUser(name string, peerConnectionConfig webrtc.Configuration, offer webrt
 	}
 
 	newUser := User{
-		ID:          utils.RandSeq(5),
-		Name:        name,
-		Peer:        pc,
-		API:         api,
-		MediaEngine: &media,
-		PayloadType: customPayloadType,
-		Codec:       codec,
+		ID:           utils.RandSeq(5),
+		Name:         name,
+		Peer:         pc,
+		API:          api,
+		MediaEngine:  &media,
+		PayloadType:  customPayloadType,
+		Codec:        codec,
+		DataChannels: map[string]*webrtc.DataChannel{},
 	}
 
 	// Allow the Peer to send a Video Stream
@@ -64,6 +72,7 @@ type User struct {
 	Codec         string
 	PayloadType   uint8
 	Peer          *webrtc.PeerConnection
+	DataChannels  map[string]*webrtc.DataChannel
 }
 
 //VideOutput is the Video Pipeline Output Track
@@ -74,6 +83,7 @@ func (u *User) VideOutput() *webrtc.Track {
 		if newTrackErr != nil {
 			panic(newTrackErr)
 		}
+		Logger.Infof("User => %v create output VideoTrack: Code: %v Payload: %v", u.Name, mixedVideoTrack.Codec().Name, mixedVideoTrack.Codec().PayloadType)
 		u.outVideoTrack = mixedVideoTrack
 	}
 	return u.outVideoTrack
@@ -87,15 +97,37 @@ func (u *User) AudioOutput() *webrtc.Track {
 		if newTrackErr != nil {
 			panic(newTrackErr)
 		}
+		Logger.Infof("User => %v create output AudioTrack: Code: %v Payload: %v", u.Name, mixedAudioTrack.Codec().Name, mixedAudioTrack.Codec().PayloadType)
 		u.outAudioTrack = mixedAudioTrack
 	}
 	return u.outAudioTrack
 }
 
+//OnUserDataChannel attach all known DataChannels
+func (u *User) OnUserDataChannel(session *Session) func(d *webrtc.DataChannel) {
+	return func(dc *webrtc.DataChannel) {
+		dc.OnOpen(func() {
+			Logger.Infof("User %v open a Channel => %v", u.Name, dc.Label())
+			u.DataChannels[dc.Label()] = dc
+			u.DataChannels[dc.Label()].SendText("OK!")
+		})
+	}
+}
+
+//OnUserConnectionStateChangedHandler handles user Timeout
+func (u *User) OnUserConnectionStateChangedHandler(session *Session) func(f webrtc.PeerConnectionState) {
+	return func(f webrtc.PeerConnectionState) {
+		if f == webrtc.PeerConnectionStateDisconnected || f == webrtc.PeerConnectionStateFailed {
+			Logger.Infof("User => %v has a Timeout!", u.Name)
+			session.RemoveUser(u.ID)
+		}
+	}
+}
+
 //RemoteTrackHandler dasdas
 func (u *User) RemoteTrackHandler(session *Session) func(*webrtc.Track, *webrtc.RTPReceiver) {
 	return func(remoteTrack *webrtc.Track, receiver *webrtc.RTPReceiver) {
-		Logger.Infof("Track from %v with Codec: %v Payloadtype: %v", u.Name, remoteTrack.Codec().Name, remoteTrack.PayloadType())
+		Logger.Infof("User => %v send a Track with Codec: %v Payloadtyp: %v", u.Name, remoteTrack.Codec().Name, remoteTrack.PayloadType())
 		if remoteTrack.PayloadType() == u.VideOutput().PayloadType() {
 			// Video Track
 			// Send a PLI on an interval so that the publisher is pushing a keyframe every rtcpPLIInterval

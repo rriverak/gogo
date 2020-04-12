@@ -73,61 +73,7 @@ func (s *SessionHandler) JoiningSessions(w http.ResponseWriter, r *http.Request)
 	signal.Decode(string(body), &offer)
 
 	// Add User to List
-	newUser, err := rtc.NewUser(userName, peerConnectionConfig, offer)
-
-	for _, cdec := range newUser.MediaEngine.GetCodecsByKind(webrtc.RTPCodecTypeVideo) {
-		Logger.Infof("User: %v Video Codec: %v PayloadType: %v Clock: %v", userName, cdec.Name, cdec.PayloadType, cdec.ClockRate)
-	}
-	for _, cdec := range newUser.MediaEngine.GetCodecsByKind(webrtc.RTPCodecTypeAudio) {
-		Logger.Infof("User: %v Audio Codec: %v PayloadType: %v Clock: %v", userName, cdec.Name, cdec.PayloadType, cdec.ClockRate)
-	}
-
-	// Create a new Mixed Video Track if not exists
-	vOut := newUser.VideOutput()
-	Logger.Infof("Create Output VideoMix: Code: %v Payload: %v", vOut.Codec().Name, vOut.Codec().PayloadType)
-
-	// Create a new Mixed Audio Track if not exists
-	aOut := newUser.AudioOutput()
-	Logger.Infof("Create Output AudioMix: Code: %v Payload: %v", aOut.Codec().Name, aOut.Codec().PayloadType)
-
-	// On Peer Conncetion Timeout or Disconnected
-	newUser.Peer.OnConnectionStateChange(func(f webrtc.PeerConnectionState) {
-		Logger.Infof("User '%v' State Changed => %v", userName, f.String())
-		if f == webrtc.PeerConnectionStateDisconnected {
-			Logger.Infof("User => %v Timeout or Disconnected", userName)
-			session.RemoveUser(userName)
-		}
-	})
-
-	// DataChannel
-	newUser.Peer.OnDataChannel(func(d *webrtc.DataChannel) {
-		Logger.Infof("New DataChannel %s %d", d.Label(), d.ID())
-		// Register channel opening handling
-		d.OnOpen(func() {
-			// Send Open Messages
-			sendErr := d.SendText("open")
-			if sendErr != nil {
-				panic(sendErr)
-			}
-		})
-		// Register text message handling
-		d.OnMessage(func(msg webrtc.DataChannelMessage) {
-			message := string(msg.Data)
-			Logger.Infof("Message from DataChannel '%s': '%s'", d.Label(), message)
-			if d.Label() == "data" && message == "close" {
-				Logger.Infof("User => %v close the Session", userName)
-				session.RemoveUser(userName)
-				err := newUser.Peer.Close()
-				if err != nil {
-					Logger.Error(err)
-				}
-			}
-		})
-	})
-
-	// Add User to Session and Restart Pipeline
-	session.Codec = newUser.Codec
-	session.AddUser(*newUser)
+	newUser, err := session.CreateUser(userName, peerConnectionConfig, offer)
 
 	// Set the remote SessionDescription
 	err = newUser.Peer.SetRemoteDescription(offer)

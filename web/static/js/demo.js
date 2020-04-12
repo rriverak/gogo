@@ -83,8 +83,23 @@ window.createSession = (roomId, userName) => {
     }
   }
   */
-  let sendChannel = pc.createDataChannel('data')
-  sendChannel.onmessage = e => log(`Message from DataChannel '${sendChannel.label}' payload '${e.data}'`)
+ 
+  let sessionSendChannel = pc.createDataChannel('session', {negotiated: true, id:1})
+ sessionSendChannel.onmessage = e => log(`Message from '${sessionSendChannel.label}' Channel. Payload => '${e.data}'`)
+ sessionSendChannel.onclose = () => log(`${sessionSendChannel.label} has closed`)
+ sessionSendChannel.onopen = () => {
+  log(`${sessionSendChannel.label} has opened`);
+  sessionSendChannel.send("open")
+ }
+
+ pc.ondatachannel = e => {
+    const chan = e.channel;
+    chan.onclose = () => log(`${chan.label} has closed`)
+    chan.onopen = () => log(`${chan.label} has opened`)
+  
+    chan.onmessage = e => log(`Message from DataChannel '${chan.label}' payload '${e.data}'`)
+    console.log("DataChannel => " + chan.label)
+  }
 
   navigator.mediaDevices.getUserMedia(
     {
@@ -105,7 +120,7 @@ window.createSession = (roomId, userName) => {
     }).catch((msg) => { log; })
 
   window.leaveSession = () => {
-    sendChannel.send("close")
+    sessionSendChannel.send("close")
     pc.close();
   }
 
