@@ -8,8 +8,8 @@ import (
 )
 
 //NewSession create a new Session
-func newSession(name string) *Session {
-	return &Session{ID: utils.RandSeq(5), Name: name}
+func newSession(name string, cfg *config.Config) *Session {
+	return &Session{ID: utils.RandSeq(5), Name: name, config: cfg}
 }
 
 //Session is a GroupVideo Call
@@ -42,6 +42,14 @@ func (s *Session) Start() {
 		s.AudioPipeline = gst.CreateAudioMixerPipeline(webrtc.Opus, channels, s.config)
 	}
 
+	// Start Pipeline output
+	if s.VideoPipeline != nil {
+		s.VideoPipeline.Start()
+	}
+	if s.AudioPipeline != nil {
+		s.AudioPipeline.Start()
+	}
+
 	for _, usr := range s.Users {
 		if s.VideoPipeline != nil {
 			s.VideoPipeline.AddOutputTrack(usr.VideoOutput())
@@ -51,13 +59,6 @@ func (s *Session) Start() {
 		}
 	}
 
-	// Start Pipeline output
-	if s.VideoPipeline != nil {
-		s.VideoPipeline.Start()
-	}
-	if s.AudioPipeline != nil {
-		s.AudioPipeline.Start()
-	}
 }
 
 //Stop a Session
@@ -85,7 +86,8 @@ func (s *Session) Restart() {
 // CreateUser in the Session
 func (s *Session) CreateUser(name string, offer webrtc.SessionDescription) (*User, error) {
 	// Get MediaEngine
-	customPayloadType, codec, media := GetMediaEngineForSDPOffer(offer, s.config.Media)
+	mediaCfg := s.config.Media
+	customPayloadType, codec, media := GetMediaEngineForSDPOffer(offer, mediaCfg)
 
 	//  Create New User with Peer
 	var peerConnectionConfig webrtc.Configuration = webrtc.Configuration{

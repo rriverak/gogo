@@ -55,7 +55,7 @@ func (u *User) VideoOutput() *webrtc.Track {
 		// Create a new Mixed Video Track if not exists
 		mixedVideoTrack, newTrackErr := u.Peer.NewTrack(u.PayloadType, rand.Uint32(), "video", "video-pipe")
 		if newTrackErr != nil {
-			panic(newTrackErr)
+			Logger.Errorf("Error: %v PayloadType: %v", newTrackErr, u.PayloadType)
 		}
 		Logger.Infof("User => %v create output VideoTrack: Code: %v Payload: %v", u.Name, mixedVideoTrack.Codec().Name, mixedVideoTrack.Codec().PayloadType)
 		u.outVideoTrack = mixedVideoTrack
@@ -69,7 +69,7 @@ func (u *User) AudioOutput() *webrtc.Track {
 		// Create a new Mixed Video Track if not exists
 		mixedAudioTrack, newTrackErr := u.Peer.NewTrack(webrtc.DefaultPayloadTypeOpus, rand.Uint32(), "audio", "audio-pipe")
 		if newTrackErr != nil {
-			panic(newTrackErr)
+			Logger.Error(newTrackErr)
 		}
 		Logger.Infof("User => %v create output AudioTrack: Code: %v Payload: %v", u.Name, mixedAudioTrack.Codec().Name, mixedAudioTrack.Codec().PayloadType)
 		u.outAudioTrack = mixedAudioTrack

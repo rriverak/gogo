@@ -13,7 +13,7 @@ type SessionManager struct {
 
 //NewSession Get from Cache or Create a new Session
 func (s *SessionManager) NewSession(name string) *Session {
-	var session *Session = newSession(name)
+	var session *Session = newSession(name, s.Config)
 	s.SaveSession(session)
 	return session
 }
@@ -21,8 +21,9 @@ func (s *SessionManager) NewSession(name string) *Session {
 //GetAllSessions from Manager
 func (s *SessionManager) GetAllSessions() []*Session {
 	all := []*Session{}
-	for _, sess := range s.SessionRegister.Items() {
-		all = append(all, sess.Object.(*Session))
+	for key := range s.SessionRegister.Items() {
+		session, _ := s.SessionRegister.Get(key)
+		all = append(all, session.(*Session))
 	}
 	return all
 }

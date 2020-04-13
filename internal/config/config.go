@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"log"
 
+	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
 
@@ -13,6 +14,21 @@ type Config struct {
 	Web      *WebConfig
 	Media    *MediaConfig
 	WebRTC   *WebRtcConfig
+}
+
+//GetLogLevel from Config
+func (c *Config) GetLogLevel() logrus.Level {
+	switch c.LogLevel {
+	case "Info":
+		return logrus.InfoLevel
+	case "Warn":
+		return logrus.WarnLevel
+	case "Error":
+		return logrus.ErrorLevel
+	case "Debug":
+		return logrus.DebugLevel
+	}
+	return logrus.InfoLevel
 }
 
 //WebConfig Struct

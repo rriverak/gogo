@@ -69,7 +69,7 @@ func CreateAudioMixerPipeline(codecName string, channels []*Channel, cfg *config
 
 	// AudioSources
 	for _, vChan := range channels {
-		builder.AddSource(vChan.SourceID, codecName, vChan.Name, false).AddNewLine()
+		builder.AddSource(vChan.SourceID, codecName, "", false).AddNewLine()
 	}
 
 	// Get GStreamer Pipeline

@@ -20,7 +20,7 @@ type SessionHandler struct {
 func (s *SessionHandler) RegisterSessionRoutes(r *mux.Router) {
 	r.HandleFunc("/", s.ListSessionsHandler).Methods("GET")
 	r.HandleFunc("/{id}", s.DeleteSessionHandler).Methods("DELETE")
-	r.HandleFunc("/{name}", s.CreateSessionHandler).Methods("POST")
+	r.HandleFunc("/{user}", s.CreateSessionHandler).Methods("POST")
 	r.HandleFunc("/{id}/join/{user}", s.JoinSessionHandler).Methods("POST")
 }
 
@@ -32,7 +32,7 @@ func (s *SessionHandler) ListSessionsHandler(w http.ResponseWriter, r *http.Requ
 //CreateSessionHandler Create a new Session if not exists
 func (s *SessionHandler) CreateSessionHandler(w http.ResponseWriter, r *http.Request) {
 	// HTTP VARs
-	sessionName := mux.Vars(r)["name"]
+	sessionName := mux.Vars(r)["user"]
 
 	// Create Session
 	session := s.SessionManager.NewSession(sessionName)

@@ -9,9 +9,9 @@ import (
 )
 
 const (
-	videoClockRate = 90000
-	audioClockRate = 48000
-	pcmClockRate   = 8000
+	VideoClockRate = 90000
+	AudioClockRate = 48000
+	PcmClockRate   = 8000
 )
 
 type gstBuilder struct {
@@ -104,7 +104,7 @@ func gstGetDecoder(codecName string) string {
 	case webrtc.G722:
 		chansrc += " clock-rate=8000 ! rtpg722depay ! decodebin "
 	default:
-		panic("Unhandled codec " + codecName)
+		Logger.Errorf("Unhandled Codec: '%v'", codecName)
 	}
 	return chansrc
 }
@@ -112,21 +112,21 @@ func gstGetDecoder(codecName string) string {
 func gstGetEncoder(codecName string) (string, float32) {
 	switch codecName {
 	case webrtc.VP8:
-		return " ! video/x-raw,format=I420 ! vp8enc error-resilient=partitions keyframe-max-dist=30 buffer-size=0 auto-alt-ref=true cpu-used=5 deadline=1 ", videoClockRate
+		return " ! video/x-raw,format=I420 ! vp8enc error-resilient=partitions keyframe-max-dist=30 buffer-size=0 auto-alt-ref=true cpu-used=5 deadline=1 ", VideoClockRate
 	case webrtc.VP9:
-		return " ! vp9enc ", videoClockRate
+		return " ! vp9enc ", VideoClockRate
 	case webrtc.H264:
-		return " ! video/x-raw,format=I420 ! x264enc bframes=0 speed-preset=veryfast key-int-max=60 ! video/x-h264,stream-format=byte-stream ", videoClockRate
+		return " ! video/x-raw,format=I420 ! x264enc bframes=0 speed-preset=veryfast key-int-max=60 ! video/x-h264,stream-format=byte-stream ", VideoClockRate
 	case webrtc.Opus:
-		return " ! opusenc ", audioClockRate
+		return " ! opusenc ", AudioClockRate
 	case webrtc.G722:
-		return " ! avenc_g722 ", audioClockRate
+		return " ! avenc_g722 ", AudioClockRate
 	case webrtc.PCMU:
-		return " ! audio/x-raw, rate=8000 ! mulawenc ", pcmClockRate
+		return " ! audio/x-raw, rate=8000 ! mulawenc ", PcmClockRate
 	case webrtc.PCMA:
-		return " ! audio/x-raw, rate=8000 ! alawenc ", pcmClockRate
+		return " ! audio/x-raw, rate=8000 ! alawenc ", PcmClockRate
 	default:
-		fmt.Println("Unhandled codec " + codecName)
+		Logger.Errorf("Unhandled Codec: '%v'", codecName)
 		return "", 0
 	}
 }

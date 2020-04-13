@@ -11,9 +11,8 @@ window.loadSessions = () => {
     resp.json().then(data => {
       try {
         document.getElementById("tbodySession").innerHTML = ""
-        for (let index = 0; index < Object.keys(data).length; index++) {
-          const roomKey = Object.keys(data)[index];
-          const roomData = data[roomKey].Object;
+        for (let index = 0; index < data.length; index++) {
+          const roomData = data[index];
 
           var btnJoin = document.createElement("button")
           btnJoin.setAttribute("class", "btn btn-default btn-sm")
