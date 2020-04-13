@@ -83,25 +83,28 @@ func (s *Session) Restart() {
 }
 
 // CreateUser in the Session
-func (s *Session) CreateUser(name string, peerConnectionConfig webrtc.Configuration, offer webrtc.SessionDescription) (*User, error) {
+func (s *Session) CreateUser(name string, offer webrtc.SessionDescription) (*User, error) {
 	// Get MediaEngine
 	customPayloadType, codec, media := GetMediaEngineForSDPOffer(offer, s.config.Media)
 
-	// Logging
-	for _, cdec := range media.GetCodecsByKind(webrtc.RTPCodecTypeVideo) {
-		Logger.Infof("User => %v offer => Video Codec: %v PayloadType: %v Clock: %v", name, cdec.Name, cdec.PayloadType, cdec.ClockRate)
-	}
-	for _, cdec := range media.GetCodecsByKind(webrtc.RTPCodecTypeAudio) {
-		Logger.Infof("User => %v offer => Audio Codec: %v PayloadType: %v Clock: %v", name, cdec.Name, cdec.PayloadType, cdec.ClockRate)
-	}
-
 	//  Create New User with Peer
+	var peerConnectionConfig webrtc.Configuration = webrtc.Configuration{
+		ICEServers: []webrtc.ICEServer{
+			{
+				URLs: s.config.WebRTC.ICEServers,
+			},
+		},
+	}
 	newUser, err := NewUser(name, peerConnectionConfig, media, customPayloadType, codec)
 	if err != nil {
 		return nil, err
 	}
 
 	if s.config.Media.Video.Enabled {
+		// Log Codec
+		for _, cdec := range media.GetCodecsByKind(webrtc.RTPCodecTypeVideo) {
+			Logger.Infof("User => %v offer => Video Codec: %v PayloadType: %v Clock: %v", name, cdec.Name, cdec.PayloadType, cdec.ClockRate)
+		}
 		// Allow the Peer to send a Video Stream
 		if _, err = newUser.Peer.AddTransceiverFromKind(webrtc.RTPCodecTypeVideo); err != nil {
 			panic(err)
@@ -113,6 +116,10 @@ func (s *Session) CreateUser(name string, peerConnectionConfig webrtc.Configurat
 	}
 
 	if s.config.Media.Audio.Enabled {
+		// Log Codec
+		for _, cdec := range media.GetCodecsByKind(webrtc.RTPCodecTypeAudio) {
+			Logger.Infof("User => %v offer => Audio Codec: %v PayloadType: %v Clock: %v", name, cdec.Name, cdec.PayloadType, cdec.ClockRate)
+		}
 		// Allow the Peer to send a Audio Stream
 		if _, err = newUser.Peer.AddTransceiverFromKind(webrtc.RTPCodecTypeAudio); err != nil {
 			panic(err)

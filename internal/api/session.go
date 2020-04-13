@@ -11,14 +11,6 @@ import (
 	"github.com/rriverak/gogo/internal/utils"
 )
 
-var peerConnectionConfig webrtc.Configuration = webrtc.Configuration{
-	ICEServers: []webrtc.ICEServer{
-		{
-			URLs: []string{"stun:stun.l.google.com:19302"},
-		},
-	},
-}
-
 //SessionHandler handles API Requests for Sessions
 type SessionHandler struct {
 	SessionManager *rtc.SessionManager
@@ -49,17 +41,6 @@ func (s *SessionHandler) CreateSessionHandler(w http.ResponseWriter, r *http.Req
 	utils.WriteStatusOK(w)
 }
 
-//DeleteSessionHandler Handles a HTTP DELETE to Delete a Sessions and drop there Users
-func (s *SessionHandler) DeleteSessionHandler(w http.ResponseWriter, r *http.Request) {
-	sessionID := mux.Vars(r)["id"]
-	if s.SessionManager.RemoveSession(sessionID) {
-		Logger.Infof("Delete Session with ID => '%v'", sessionID)
-		utils.WriteStatusOK(w)
-	} else {
-		utils.WriteStatusNotFound(w)
-	}
-}
-
 //JoinSessionHandler Handles the Joining Offer
 func (s *SessionHandler) JoinSessionHandler(w http.ResponseWriter, r *http.Request) {
 	// HTTP VARs
@@ -79,7 +60,7 @@ func (s *SessionHandler) JoinSessionHandler(w http.ResponseWriter, r *http.Reque
 	signal.Decode(string(body), &offer)
 
 	// Create User from Session
-	newUser, err := session.CreateUser(userName, peerConnectionConfig, offer)
+	newUser, err := session.CreateUser(userName, offer)
 	answer := newUser.Anwser(offer)
 
 	// Save the current Session in Cache.
@@ -90,4 +71,15 @@ func (s *SessionHandler) JoinSessionHandler(w http.ResponseWriter, r *http.Reque
 
 	// Write Awnser to Client
 	utils.WriteJSON(w, answer)
+}
+
+//DeleteSessionHandler Handles a HTTP DELETE to Delete a Sessions and drop there Users
+func (s *SessionHandler) DeleteSessionHandler(w http.ResponseWriter, r *http.Request) {
+	sessionID := mux.Vars(r)["id"]
+	if s.SessionManager.RemoveSession(sessionID) {
+		Logger.Infof("Delete Session with ID => '%v'", sessionID)
+		utils.WriteStatusOK(w)
+	} else {
+		utils.WriteStatusNotFound(w)
+	}
 }
