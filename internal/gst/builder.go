@@ -9,9 +9,12 @@ import (
 )
 
 const (
+	//VideoClockRate Default
 	VideoClockRate = 90000
+	//AudioClockRate Default
 	AudioClockRate = 48000
-	PcmClockRate   = 8000
+	//PcmClockRate Default
+	PcmClockRate = 8000
 )
 
 type gstBuilder struct {
