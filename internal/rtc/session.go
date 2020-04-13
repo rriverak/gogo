@@ -2,13 +2,14 @@ package rtc
 
 import (
 	"github.com/pion/webrtc/v2"
+	"github.com/rriverak/gogo/internal/config"
 	"github.com/rriverak/gogo/internal/gst"
 	"github.com/rriverak/gogo/internal/utils"
 )
 
 //NewSession create a new Session
-func NewSession() *Session {
-	return &Session{ID: utils.RandSeq(5)}
+func newSession(name string) *Session {
+	return &Session{ID: utils.RandSeq(5), Name: name}
 }
 
 //Session is a GroupVideo Call
@@ -20,6 +21,7 @@ type Session struct {
 	VideoPipeline *gst.Pipeline `json:"-"`
 	AudioPipeline *gst.Pipeline `json:"-"`
 	Users         []User        `json:"Users"`
+	config        *config.Config
 }
 
 //Start a Session with new Parameters
@@ -30,20 +32,32 @@ func (s *Session) Start() {
 		chans = append(chans, usr.ID)
 	}
 
-	// Create GStreamer Pipeline
-	s.VideoPipeline = gst.CreateVideoMixerPipeline(s.Codec, chans)
+	if s.config.Media.Video.Enabled {
+		// Create GStreamer Video Pipeline
+		s.VideoPipeline = gst.CreateVideoMixerPipeline(s.Codec, chans)
+	}
 
-	// Create GStreamer Pipeline
-	s.AudioPipeline = gst.CreateAudioMixerPipeline(webrtc.Opus, chans)
+	if s.config.Media.Audio.Enabled {
+		// Create GStreamer Audio Pipeline
+		s.AudioPipeline = gst.CreateAudioMixerPipeline(webrtc.Opus, chans)
+	}
 
 	for _, usr := range s.Users {
-		s.VideoPipeline.AddOutputTrack(usr.VideOutput())
-		s.AudioPipeline.AddOutputTrack(usr.AudioOutput())
+		if s.VideoPipeline != nil {
+			s.VideoPipeline.AddOutputTrack(usr.VideoOutput())
+		}
+		if s.AudioPipeline != nil {
+			s.AudioPipeline.AddOutputTrack(usr.AudioOutput())
+		}
 	}
 
 	// Start Pipeline output
-	s.VideoPipeline.Start()
-	s.AudioPipeline.Start()
+	if s.VideoPipeline != nil {
+		s.VideoPipeline.Start()
+	}
+	if s.AudioPipeline != nil {
+		s.AudioPipeline.Start()
+	}
 }
 
 //Stop a Session
@@ -70,11 +84,45 @@ func (s *Session) Restart() {
 
 // CreateUser in the Session
 func (s *Session) CreateUser(name string, peerConnectionConfig webrtc.Configuration, offer webrtc.SessionDescription) (*User, error) {
-	// Create New User with Peer
-	newUser, err := NewUser(name, peerConnectionConfig, offer)
+	// Get MediaEngine
+	customPayloadType, codec, media := GetMediaEngineForSDPOffer(offer, s.config.Media)
+
+	// Logging
+	for _, cdec := range media.GetCodecsByKind(webrtc.RTPCodecTypeVideo) {
+		Logger.Infof("User => %v offer => Video Codec: %v PayloadType: %v Clock: %v", name, cdec.Name, cdec.PayloadType, cdec.ClockRate)
+	}
+	for _, cdec := range media.GetCodecsByKind(webrtc.RTPCodecTypeAudio) {
+		Logger.Infof("User => %v offer => Audio Codec: %v PayloadType: %v Clock: %v", name, cdec.Name, cdec.PayloadType, cdec.ClockRate)
+	}
+
+	//  Create New User with Peer
+	newUser, err := NewUser(name, peerConnectionConfig, media, customPayloadType, codec)
 	if err != nil {
 		return nil, err
 	}
+
+	if s.config.Media.Video.Enabled {
+		// Allow the Peer to send a Video Stream
+		if _, err = newUser.Peer.AddTransceiverFromKind(webrtc.RTPCodecTypeVideo); err != nil {
+			panic(err)
+		}
+		// Add VideoMixed Track to Peer
+		if _, err = newUser.Peer.AddTrack(newUser.VideoOutput()); err != nil {
+			panic(err)
+		}
+	}
+
+	if s.config.Media.Audio.Enabled {
+		// Allow the Peer to send a Audio Stream
+		if _, err = newUser.Peer.AddTransceiverFromKind(webrtc.RTPCodecTypeAudio); err != nil {
+			panic(err)
+		}
+		// Add AudioMixed Track to Peer
+		if _, err = newUser.Peer.AddTrack(newUser.AudioOutput()); err != nil {
+			panic(err)
+		}
+	}
+
 	// Register Users RemoteTrack with Session
 	newUser.Peer.OnTrack(newUser.OnRemoteTrackHandler(s))
 	// Register Session Auto-Leave on Timeout

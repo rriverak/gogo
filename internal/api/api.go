@@ -1,58 +1,19 @@
 package api
 
 import (
-	"encoding/json"
-	"fmt"
-	"net/http"
-
+	"github.com/gorilla/mux"
+	"github.com/rriverak/gogo/internal/rtc"
 	"github.com/sirupsen/logrus"
 )
 
 // Logger is the API Logger Instance
 var Logger *logrus.Logger
 
-//WriteJSON to Response
-func WriteJSON(w http.ResponseWriter, v interface{}) {
-	data, _ := json.Marshal(v)
-	WriteContentType(w, "application/json")
-	WriteData(w, data)
-}
+//RegisterRoutes for the API
+func RegisterRoutes(r *mux.Router, sessionManager *rtc.SessionManager) {
+	router := r.PathPrefix("/api/sessions").Subrouter()
 
-//WriteData to Response with Status OK
-func WriteData(w http.ResponseWriter, data []byte) {
-	WriteStatusOK(w)
-	fmt.Fprintf(w, string(data))
-}
+	sessionHandler := SessionHandler{SessionManager: sessionManager}
+	sessionHandler.RegisterSessionRoutes(router)
 
-//WriteError to Response as JSON with Status 500
-func WriteError(w http.ResponseWriter, err error) {
-	WriteStatusError(w)
-	WriteContentType(w, "application/json")
-	data, _ := json.Marshal(map[string]string{"error": err.Error()})
-	fmt.Fprintf(w, string(data))
-}
-
-//WriteContentType to Response Header
-func WriteContentType(w http.ResponseWriter, cType string) {
-	w.Header().Set("Content-Type", cType)
-}
-
-//WriteStatusOK to Response Header
-func WriteStatusOK(w http.ResponseWriter) {
-	w.WriteHeader(http.StatusOK)
-}
-
-//WriteStatusNotFound to Response Header
-func WriteStatusNotFound(w http.ResponseWriter) {
-	w.WriteHeader(http.StatusNotFound)
-}
-
-//WriteStatusConfict to Response Header
-func WriteStatusConfict(w http.ResponseWriter) {
-	w.WriteHeader(http.StatusConflict)
-}
-
-//WriteStatusError to Response Header
-func WriteStatusError(w http.ResponseWriter) {
-	w.WriteHeader(http.StatusInternalServerError)
 }

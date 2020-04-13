@@ -7,23 +7,13 @@ import (
 
 	"github.com/pion/rtcp"
 	"github.com/pion/webrtc/v2"
-	"github.com/rriverak/gogo/internal/signal"
 	"github.com/rriverak/gogo/internal/utils"
 )
 
 //NewUser creates a new User
-func NewUser(name string, peerConnectionConfig webrtc.Configuration, offer webrtc.SessionDescription) (*User, error) {
-	media := webrtc.MediaEngine{}
-	media.RegisterCodec(webrtc.NewRTPOpusCodec(webrtc.DefaultPayloadTypeOpus, 48000))
-	customPayloadType, codec := signal.RegisterCodecFromSDPOffer(&media, offer.SDP)
-	api := webrtc.NewAPI(webrtc.WithMediaEngine(media))
+func NewUser(name string, peerConnectionConfig webrtc.Configuration, media *webrtc.MediaEngine, customPayloadType uint8, codec string) (*User, error) {
 
-	for _, cdec := range media.GetCodecsByKind(webrtc.RTPCodecTypeVideo) {
-		Logger.Infof("User => %v offer => Video Codec: %v PayloadType: %v Clock: %v", name, cdec.Name, cdec.PayloadType, cdec.ClockRate)
-	}
-	for _, cdec := range media.GetCodecsByKind(webrtc.RTPCodecTypeAudio) {
-		Logger.Infof("User => %v offer => Audio Codec: %v PayloadType: %v Clock: %v", name, cdec.Name, cdec.PayloadType, cdec.ClockRate)
-	}
+	api := webrtc.NewAPI(webrtc.WithMediaEngine(*media))
 
 	// Create a PeerConnection
 	pc, err := api.NewPeerConnection(peerConnectionConfig)
@@ -36,29 +26,12 @@ func NewUser(name string, peerConnectionConfig webrtc.Configuration, offer webrt
 		Name:         name,
 		Peer:         pc,
 		API:          api,
-		MediaEngine:  &media,
+		MediaEngine:  media,
 		PayloadType:  customPayloadType,
 		Codec:        codec,
 		DataChannels: map[string]*webrtc.DataChannel{},
 	}
 
-	// Allow the Peer to send a Video Stream
-	if _, err = newUser.Peer.AddTransceiverFromKind(webrtc.RTPCodecTypeVideo); err != nil {
-		panic(err)
-	}
-	// Allow the Peer to send a Audio Stream
-	if _, err = newUser.Peer.AddTransceiverFromKind(webrtc.RTPCodecTypeAudio); err != nil {
-		panic(err)
-	}
-
-	// Add VideoMixed Track to Peer
-	if _, err = newUser.Peer.AddTrack(newUser.VideOutput()); err != nil {
-		panic(err)
-	}
-	// Add AudioMixed Track to Peer
-	if _, err = newUser.Peer.AddTrack(newUser.AudioOutput()); err != nil {
-		panic(err)
-	}
 	return &newUser, nil
 }
 
@@ -76,8 +49,8 @@ type User struct {
 	DataChannels  map[string]*webrtc.DataChannel
 }
 
-//VideOutput is the Video Pipeline Output Track
-func (u *User) VideOutput() *webrtc.Track {
+//VideoOutput is the Video Pipeline Output Track
+func (u *User) VideoOutput() *webrtc.Track {
 	if u.outVideoTrack == nil {
 		// Create a new Mixed Video Track if not exists
 		mixedVideoTrack, newTrackErr := u.Peer.NewTrack(u.PayloadType, rand.Uint32(), "video", "video-pipe")
@@ -155,7 +128,7 @@ func (u *User) OnUserConnectionStateChangedHandler(session *Session) func(f webr
 func (u *User) OnRemoteTrackHandler(session *Session) func(*webrtc.Track, *webrtc.RTPReceiver) {
 	return func(remoteTrack *webrtc.Track, receiver *webrtc.RTPReceiver) {
 		Logger.Infof("User => %v send a Track with Codec: %v Payloadtyp: %v", u.Name, remoteTrack.Codec().Name, remoteTrack.PayloadType())
-		if remoteTrack.PayloadType() == u.VideOutput().PayloadType() {
+		if remoteTrack.PayloadType() == u.VideoOutput().PayloadType() {
 			// Video Track
 			// Send a PLI on an interval so that the publisher is pushing a keyframe every rtcpPLIInterval
 			// This can be less wasteful by processing incoming RTCP events, then we would emit a NACK/PLI when a viewer requests it
@@ -207,7 +180,7 @@ func (u *User) OnRemoteTrackHandler(session *Session) func(*webrtc.Track, *webrt
 		} else {
 			Logger.Error("OnTrack Codec not match...!")
 			Logger.Errorf("	RemoteTrack=> Codec %v::%v", remoteTrack.PayloadType(), remoteTrack.Codec().Name)
-			Logger.Errorf("	VideoTrack => Codec %v::%v", u.VideOutput().PayloadType(), u.VideOutput().Codec().Name)
+			Logger.Errorf("	VideoTrack => Codec %v::%v", u.VideoOutput().PayloadType(), u.VideoOutput().Codec().Name)
 			Logger.Errorf("	AudioTrack => Codec %v::%v", u.AudioOutput().PayloadType(), u.AudioOutput().Codec().Name)
 		}
 	}

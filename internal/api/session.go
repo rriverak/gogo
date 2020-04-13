@@ -5,10 +5,10 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/patrickmn/go-cache"
 	"github.com/pion/webrtc/v2"
 	"github.com/rriverak/gogo/internal/rtc"
 	"github.com/rriverak/gogo/internal/signal"
+	"github.com/rriverak/gogo/internal/utils"
 )
 
 var peerConnectionConfig webrtc.Configuration = webrtc.Configuration{
@@ -21,22 +21,20 @@ var peerConnectionConfig webrtc.Configuration = webrtc.Configuration{
 
 //SessionHandler handles API Requests for Sessions
 type SessionHandler struct {
-	SessionRegister *cache.Cache
+	SessionManager *rtc.SessionManager
 }
 
 //RegisterSessionRoutes apply all Routes to the Router
 func (s *SessionHandler) RegisterSessionRoutes(r *mux.Router) {
-	s.SessionRegister = cache.New(cache.NoExpiration, cache.NoExpiration)
-	sub := r.PathPrefix("/api/sessions").Subrouter()
-	sub.HandleFunc("/", s.ListSessionsHandler).Methods("GET")
-	sub.HandleFunc("/{id}", s.DeleteSessionHandler).Methods("DELETE")
-	sub.HandleFunc("/{name}", s.CreateSessionHandler).Methods("POST")
-	sub.HandleFunc("/{id}/join/{user}", s.JoinSessionHandler).Methods("POST")
+	r.HandleFunc("/", s.ListSessionsHandler).Methods("GET")
+	r.HandleFunc("/{id}", s.DeleteSessionHandler).Methods("DELETE")
+	r.HandleFunc("/{name}", s.CreateSessionHandler).Methods("POST")
+	r.HandleFunc("/{id}/join/{user}", s.JoinSessionHandler).Methods("POST")
 }
 
 //ListSessionsHandler Handles a HTTP Get to List all Sessions with Users
 func (s *SessionHandler) ListSessionsHandler(w http.ResponseWriter, r *http.Request) {
-	WriteJSON(w, s.SessionRegister.Items())
+	utils.WriteJSON(w, s.SessionManager.GetAllSessions())
 }
 
 //CreateSessionHandler Create a new Session if not exists
@@ -45,27 +43,20 @@ func (s *SessionHandler) CreateSessionHandler(w http.ResponseWriter, r *http.Req
 	sessionName := mux.Vars(r)["name"]
 
 	// Create Session
-	session := rtc.NewSession()
-	session.Name = sessionName
-
-	// Save the Session in Cache.
-	err := s.saveSession(session)
-	if err != nil {
-		panic(err)
-	}
+	session := s.SessionManager.NewSession(sessionName)
 
 	Logger.Infof("Create Session with ID => '%v'", session.ID)
-	WriteStatusOK(w)
+	utils.WriteStatusOK(w)
 }
 
 //DeleteSessionHandler Handles a HTTP DELETE to Delete a Sessions and drop there Users
 func (s *SessionHandler) DeleteSessionHandler(w http.ResponseWriter, r *http.Request) {
 	sessionID := mux.Vars(r)["id"]
-	if s.removeSession(sessionID) {
+	if s.SessionManager.RemoveSession(sessionID) {
 		Logger.Infof("Delete Session with ID => '%v'", sessionID)
-		WriteStatusOK(w)
+		utils.WriteStatusOK(w)
 	} else {
-		WriteStatusNotFound(w)
+		utils.WriteStatusNotFound(w)
 	}
 }
 
@@ -76,10 +67,10 @@ func (s *SessionHandler) JoinSessionHandler(w http.ResponseWriter, r *http.Reque
 	userName := mux.Vars(r)["user"]
 
 	// Get a Session
-	var session *rtc.Session = s.getSession(sessionID)
+	var session *rtc.Session = s.SessionManager.GetSession(sessionID)
 
 	if session == nil {
-		WriteStatusConfict(w)
+		utils.WriteStatusConfict(w)
 		return
 	}
 	// Get the offer from Body
@@ -92,47 +83,11 @@ func (s *SessionHandler) JoinSessionHandler(w http.ResponseWriter, r *http.Reque
 	answer := newUser.Anwser(offer)
 
 	// Save the current Session in Cache.
-	err = s.saveSession(session)
+	err = s.SessionManager.SaveSession(session)
 	if err != nil {
 		panic(err)
 	}
 
 	// Write Awnser to Client
-	WriteJSON(w, answer)
-}
-
-//getSession Get from Cache or Create a new Session
-func (s *SessionHandler) getSession(sessionID string) *rtc.Session {
-	var session *rtc.Session
-	sess, sessionFound := s.SessionRegister.Get(sessionID)
-	if sessionFound {
-		session = sess.(*rtc.Session)
-	}
-	return session
-}
-
-//saveSession Add the Session in Cache or Replace it.
-func (s *SessionHandler) saveSession(session *rtc.Session) error {
-	var err error
-	if _, found := s.SessionRegister.Get(session.ID); !found {
-		err = s.SessionRegister.Add(session.ID, session, cache.NoExpiration)
-	} else {
-		err = s.SessionRegister.Replace(session.ID, session, cache.NoExpiration)
-	}
-	return err
-}
-
-//removeSession remove the Session from Cache if found. Returns true if found.
-func (s *SessionHandler) removeSession(sessionID string) bool {
-	if sess, found := s.SessionRegister.Get(sessionID); found {
-		session := sess.(*rtc.Session)
-		// Disconnect all Users
-		for _, usr := range session.Users {
-			session.DisconnectUser(&usr)
-		}
-		// Remove Session from Cache
-		s.SessionRegister.Delete(sessionID)
-		return true
-	}
-	return false
+	utils.WriteJSON(w, answer)
 }

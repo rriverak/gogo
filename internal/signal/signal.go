@@ -13,9 +13,6 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
-
-	"github.com/pion/sdp/v2"
-	"github.com/pion/webrtc/v2"
 )
 
 // Allows compressing offer/answer to bypass terminal input limits.
@@ -111,73 +108,4 @@ func unzip(in []byte) []byte {
 		panic(err)
 	}
 	return res
-}
-
-var (
-	// VP8 Enabled
-	VP8 = true
-	// VP9 Enabled
-	VP9 = false
-	// H264 Enabled
-	H264 = true
-)
-
-//RegisterCodecFromSDPOffer to ensure the right PayloadType
-func RegisterCodecFromSDPOffer(mediaEngine *webrtc.MediaEngine, sdpStr string) (uint8, string) {
-	var customPayloadType uint8 = 0
-	var customCodec string = ""
-	parsed := sdp.SessionDescription{}
-	if err := parsed.Unmarshal([]byte(sdpStr)); err != nil {
-		panic(err)
-	}
-
-	if customPayloadType == 0 && VP9 {
-		codecStr := sdp.Codec{
-			Name: "VP9",
-		}
-		customVP9PayloadType, err := parsed.GetPayloadTypeForCodec(codecStr)
-		if err != nil {
-			customPayloadType = 0
-		} else {
-			customPayloadType = customVP9PayloadType
-			sdpCodec, _ := parsed.GetCodecForPayloadType(customVP9PayloadType)
-			customCodec = sdpCodec.Name
-			codec := webrtc.NewRTPVP9Codec(customPayloadType, 90000)
-			codec.SDPFmtpLine = sdpCodec.Fmtp
-			mediaEngine.RegisterCodec(codec)
-		}
-	}
-	if customPayloadType == 0 && VP8 {
-		codecStr := sdp.Codec{
-			Name: "VP8",
-		}
-		customVP8PayloadType, err := parsed.GetPayloadTypeForCodec(codecStr)
-		if err != nil {
-			customPayloadType = 0
-		} else {
-			customPayloadType = customVP8PayloadType
-			sdpCodec, _ := parsed.GetCodecForPayloadType(customVP8PayloadType)
-			customCodec = sdpCodec.Name
-			codec := webrtc.NewRTPVP8Codec(customPayloadType, 90000)
-			codec.SDPFmtpLine = sdpCodec.Fmtp
-			mediaEngine.RegisterCodec(codec)
-		}
-	}
-	if customPayloadType == 0 && H264 {
-		codecStr := sdp.Codec{
-			Name: "H264",
-		}
-		customH264PayloadType, err := parsed.GetPayloadTypeForCodec(codecStr)
-		if err != nil {
-			customPayloadType = 0
-		} else {
-			customPayloadType = customH264PayloadType
-			sdpCodec, _ := parsed.GetCodecForPayloadType(customH264PayloadType)
-			customCodec = sdpCodec.Name
-			codec := webrtc.NewRTPH264Codec(customPayloadType, 90000)
-			codec.SDPFmtpLine = sdpCodec.Fmtp
-			mediaEngine.RegisterCodec(codec)
-		}
-	}
-	return customPayloadType, customCodec
 }
