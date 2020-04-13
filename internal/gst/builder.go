@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/pion/webrtc/v2"
+	"github.com/rriverak/gogo/internal/config"
 )
 
 const (
@@ -17,11 +18,13 @@ type gstBuilder struct {
 	Pipe      string
 	gstStr    string
 	clockRate float32
+	config    *config.MediaConfig
 }
 
-func newGstBuilder() *gstBuilder {
+func newGstBuilder(config *config.MediaConfig) *gstBuilder {
 	return &gstBuilder{
-		Pipe: "!",
+		Pipe:   "!",
+		config: config,
 	}
 }
 
@@ -34,7 +37,8 @@ func (g *gstBuilder) AddSource(sourceID string, codecName string, overlayText st
 	g.AddStr(gstGetDecoder(codecName)).AddPipe()
 	//VideoBox
 	if boxed {
-		g.AddStr("videobox autocrop=true ! video/x-raw, width=350, height=350").AddPipe()
+		fullSize := g.config.Video.GetFullSize()
+		g.AddStr(fmt.Sprintf("videobox autocrop=true ! video/x-raw, width=%v, height=%v", fullSize, fullSize)).AddPipe()
 	}
 	//Overlay
 	if len(overlayText) > 0 {

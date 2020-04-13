@@ -6,15 +6,6 @@ import (
 	"github.com/rriverak/gogo/internal/config"
 )
 
-var (
-	// VP8 Enabled
-	VP8 = true
-	// VP9 Enabled
-	VP9 = false
-	// H264 Enabled
-	H264 = true
-)
-
 //GetMediaEngineForSDPOffer for an Offer
 func GetMediaEngineForSDPOffer(offer webrtc.SessionDescription, mediaCfg *config.MediaConfig) (uint8, string, *webrtc.MediaEngine) {
 	media := webrtc.MediaEngine{}

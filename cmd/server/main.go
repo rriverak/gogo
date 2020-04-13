@@ -23,6 +23,7 @@ func init() {
 	gst.Logger = Logger
 	rtc.Logger = Logger
 }
+
 func main() {
 	// Name & Version
 	Logger.Info("GOGO Video GroupCall Server - 0.1")

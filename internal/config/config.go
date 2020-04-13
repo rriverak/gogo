@@ -35,9 +35,15 @@ type MediaAudioConfig struct {
 
 //MediaVideoConfig Struct
 type MediaVideoConfig struct {
-	Enabled   bool
-	Codecs    *MediaVideoCodecConfig
-	VideoSize int
+	Enabled     bool
+	Codecs      *MediaVideoCodecConfig
+	VideoSize   int
+	VideoBorder int
+}
+
+//GetFullSize get the full Video Size
+func (mvc *MediaVideoConfig) GetFullSize() int {
+	return mvc.VideoSize + (2 * mvc.VideoBorder)
 }
 
 //MediaVideoCodecConfig Struct
@@ -63,9 +69,10 @@ func GetDefaultConfig() Config {
 		},
 		Media: &MediaConfig{
 			Video: &MediaVideoConfig{
-				Enabled:   true,
-				Codecs:    &MediaVideoCodecConfig{VP8: true, H264: true, VP9: false},
-				VideoSize: 320,
+				Enabled:     true,
+				Codecs:      &MediaVideoCodecConfig{VP8: true, H264: true, VP9: false},
+				VideoSize:   320,
+				VideoBorder: 15,
 			},
 			Audio: &MediaAudioConfig{
 				Enabled: true,

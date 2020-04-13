@@ -26,20 +26,20 @@ type Session struct {
 
 //Start a Session with new Parameters
 func (s *Session) Start() {
-	// Create Pipeline Channel
-	chans := []string{}
+	// Create Pipeline Channels
+	channels := []*gst.Channel{}
 	for _, usr := range s.Users {
-		chans = append(chans, usr.ID)
+		channels = append(channels, gst.NewChannel(usr.ID, usr.Name))
 	}
 
 	if s.config.Media.Video.Enabled {
 		// Create GStreamer Video Pipeline
-		s.VideoPipeline = gst.CreateVideoMixerPipeline(s.Codec, chans)
+		s.VideoPipeline = gst.CreateVideoMixerPipeline(s.Codec, channels, s.config)
 	}
 
 	if s.config.Media.Audio.Enabled {
 		// Create GStreamer Audio Pipeline
-		s.AudioPipeline = gst.CreateAudioMixerPipeline(webrtc.Opus, chans)
+		s.AudioPipeline = gst.CreateAudioMixerPipeline(webrtc.Opus, channels, s.config)
 	}
 
 	for _, usr := range s.Users {
@@ -118,7 +118,7 @@ func (s *Session) CreateUser(name string, offer webrtc.SessionDescription) (*Use
 	if s.config.Media.Audio.Enabled {
 		// Log Codec
 		for _, cdec := range media.GetCodecsByKind(webrtc.RTPCodecTypeAudio) {
-			Logger.Infof("User => %v offer => Audio Codec: %v PayloadType: %v Clock: %v", name, cdec.Name, cdec.PayloadType, cdec.ClockRate)
+			Logger.Infof("User => %v offer Audio Codec: %v PayloadType: %v Clock: %v", name, cdec.Name, cdec.PayloadType, cdec.ClockRate)
 		}
 		// Allow the Peer to send a Audio Stream
 		if _, err = newUser.Peer.AddTransceiverFromKind(webrtc.RTPCodecTypeAudio); err != nil {
