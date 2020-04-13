@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"github.com/gorilla/mux"
-	"github.com/pion/webrtc/v2"
 	"github.com/rriverak/gogo/internal/api"
 	"github.com/rriverak/gogo/internal/config"
 	"github.com/rriverak/gogo/internal/gst"
@@ -33,12 +32,7 @@ func main() {
 	router := mux.NewRouter()
 
 	// API
-	mediaEngine := webrtc.MediaEngine{}
-	// mediaEngine.RegisterDefaultCodecs()
-	// mediaEngine.RegisterCodec(webrtc.NewRTPVP8Codec(webrtc.DefaultPayloadTypeH264, 90000))
-	// mediaEngine.RegisterCodec(webrtc.NewRTPVP8Codec(100, 90000))
-	mediaEngine.RegisterCodec(webrtc.NewRTPOpusCodec(webrtc.DefaultPayloadTypeOpus, 48000))
-	sessionHandler := api.SessionHandler{MediaEngine: &mediaEngine}
+	sessionHandler := api.SessionHandler{}
 	sessionHandler.RegisterSessionRoutes(router)
 
 	// WEB

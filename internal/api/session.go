@@ -22,7 +22,6 @@ var peerConnectionConfig webrtc.Configuration = webrtc.Configuration{
 //SessionHandler handles API Requests for Sessions
 type SessionHandler struct {
 	SessionRegister *cache.Cache
-	MediaEngine     *webrtc.MediaEngine
 }
 
 //RegisterSessionRoutes apply all Routes to the Router
