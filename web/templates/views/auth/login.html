@@ -1,0 +1,44 @@
+{{template "shell" .}}
+{{define "title"}}
+    
+{{end}}
+{{define "main"}}
+<div class="flex items-center justify-center ">
+    <div class="w-full max-w-xs">
+        <div class="text-center">
+            <a href="/login">
+                <span class="text-white text-4xl pl-2"><i class="fas fa-video"></i>&nbsp;GoGo</span>
+            </a>
+        </div>
+        <form method="POST" action="/login" class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="username">
+                    Username
+                </label>
+                <input
+                    class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                    id="username" name="username" type="text" placeholder="Username">
+            </div>
+            <div class="mb-6">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="password">
+                    Password
+                </label>
+                <input
+                    class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                    id="password" name="password" type="password" placeholder="**********">
+            </div>
+            <div class="flex items-center justify-between">
+                <button
+                    class="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+                    type="submit">
+                    Login
+                </button>
+            </div>
+            {{ .csrfField }}
+        </form>
+        <p class="text-center text-gray-500 text-xs">
+            &copy;2020 All rights reserved.
+        </p>
+    </div>
+</div>
+{{end}}

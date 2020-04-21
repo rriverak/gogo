@@ -3,11 +3,15 @@ package main
 import (
 	"os"
 
+	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/rriverak/gogo/internal/config"
 	"github.com/rriverak/gogo/internal/gst"
+	"github.com/rriverak/gogo/internal/mgt"
 	"github.com/rriverak/gogo/internal/rtc"
-	"github.com/rriverak/gogo/web/api"
-	"github.com/rriverak/gogo/web/webserver"
+	"github.com/rriverak/gogo/pkg/api"
+	"github.com/rriverak/gogo/pkg/app"
+	"github.com/rriverak/gogo/pkg/auth"
+	"github.com/rriverak/gogo/pkg/webserver"
 	"github.com/sirupsen/logrus"
 )
 
@@ -20,10 +24,14 @@ func init() {
 	api.Logger = Logger
 	gst.Logger = Logger
 	rtc.Logger = Logger
+	mgt.Logger = Logger
+	app.Logger = Logger
+	auth.Logger = Logger
 	webserver.Logger = Logger
 }
 
 func main() {
+
 	// Name & Version
 	Logger.Info("Video GroupCall Server v0.1")
 	// Config
@@ -33,11 +41,8 @@ func main() {
 	Logger.Infof("LogLevel: %v", cfg.LogLevel)
 	Logger.SetLevel(cfg.GetLogLevel())
 
-	// Session Manager
-	sessionMgr := rtc.NewSessionManager(cfg)
-
 	// StartWebServer
-	webserver.Start(&sessionMgr, cfg)
+	webserver.Start(cfg)
 
 	// GStreamer MainLoop in MainThread
 	gst.StartMainLoop()

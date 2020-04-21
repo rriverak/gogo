@@ -1,0 +1,66 @@
+{{template "shell" .}}
+{{define "title"}}
+Users
+{{end}}
+{{define "main"}}
+
+<div class="flex flex-wrap">
+    <div class="w-full ml-5 mr-5 mt-5 p-1">
+        <a class="flex-shrink-0 bg-blue-500 hover:bg-blue-400 border-b-4 border-blue-700 hover:border-blue-500 inline-flex items-center text-white py-1 px-2 rounded"
+            href="/admin/users/create">
+            <i class="fas fa-user-plus pr-0 md:pr-3 "></i>
+            <span>Create new User</span>
+        </a>
+    </div>
+    <div class="w-full m-5 bg-white border-transparent rounded-lg shadow-lg">
+        <div class="bg-gray-400 border-b-2 border-gray-500 rounded-tl-lg rounded-tr-lg p-2">
+            <h5 class="font-bold uppercase text-gray-600">All Users</h5>
+        </div>
+        <div class="p-5">
+            <table class="w-full p-5 text-gray-700">
+                <thead>
+                    <tr>
+                        <th class="text-left text-blue-900">ID</th>
+                        <th class="text-left text-blue-900">Username</th>
+                        <th class="text-left text-blue-900">Admin</th>
+                        <th class="text-left text-blue-900">Created At</th>
+                        <th class="text-left text-blue-900">Updated At</th>
+                        <th class="text-right text-blue-900"></th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {{range $idx, $sess := .Users}}
+                    <tr>
+                        <td class="text-left">{{$sess.ID}}</td>
+                        <td >{{$sess.UserName}}</td>
+                        <td >{{$sess.IsAdmin}}</td>
+                        <td tile="{{$sess.CreatedAt.Format "02.01.06 - 15:04:05"}}">{{$sess.CreatedAt.Format "15:04:05"}}</td>
+                        <td tile="{{$sess.UpdatedAt.Format "02.01.06 - 15:04:05"}}">{{$sess.UpdatedAt.Format "15:04:05"}}</td>
+                        <td class="text-right">
+                            <form>
+                                <div class="inline-flex">
+                                    <a href="/admin/users/{{$sess.ID}}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded-l rounded-r inline-flex items-center">
+                                        <i class="fas fa-user-edit pr-0 md:pr-3 "></i>
+                                        <span>Edit</span>
+                                    </a>
+                                </div>
+                            </form>
+                        </td>
+                    </tr>
+                    {{end}}
+
+                    {{ $usersCount := len .Users }}
+                    {{if eq $usersCount 0 }}
+                    <tr>
+                        <td class="text-center text-gray-400" colspan="6">
+                            <div class="py-5">No Users found..</div>
+                        </td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{{end}}

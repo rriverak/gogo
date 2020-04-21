@@ -1,0 +1,55 @@
+{{template "shell" .}}
+{{define "title"}}
+    Sessions
+{{end}}
+{{define "main"}}
+    <div class="flex flex-wrap">
+        <div class="w-full p-3 bg-white border-transparent rounded-lg shadow-lg">
+            <div class="bg-gray-400 border-b-2 border-gray-500 rounded-tl-lg rounded-tr-lg p-2">
+                <h5 class="font-bold uppercase text-gray-600">All Sessions</h5>
+            </div>
+            <div class="p-5">
+                <table class="w-full p-5 text-gray-700">
+                    <thead>
+                        <tr>
+                            <th class="text-left text-blue-900">ID</th>
+                            <th class="text-left text-blue-900">Name</th>
+                            <th class="text-center text-blue-900">Users</th>
+                            <th class="text-right text-blue-900">Action</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {{range $idx, $sess := .Sessions}}
+                        <tr>
+                            <td>{{$sess.ID}}</td>
+                            <td>{{$sess.Name}}</td>
+                            <td>{{len $sess.Users}}</td>
+                            <td class="text-right">
+                                <div class="inline-flex">
+                                    <button class="bg-blue-500 hover:bg-blue-700 text-white py-1 px-1 rounded-l">
+                                      Join
+                                    </button>
+                                    <button class="bg-blue-500 hover:bg-blue-700 text-white py-1 px-1 rounded-r">
+                                      Close
+                                    </button>
+                                  </div>
+                            </td>
+                        </tr>
+                        {{end}}
+
+                        {{ $sessionCount := len .Sessions }}
+                        {{if eq $sessionCount 0 }}
+                        <tr>
+                            <td class="text-center text-gray-400" colspan="4">
+                                <div class="py-5">No Sessions found..</div>
+                            </td>
+                        </tr>
+                        {{end}}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+{{end}}
+

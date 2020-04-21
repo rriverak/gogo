@@ -1,0 +1,15 @@
+{{template "shell" .}}
+{{define "body"}}
+<body class="bg-gray-900 font-sans leading-normal tracking-normal mt-12">
+    {{template "head-nav" .}}
+    <div class="flex flex-col md:flex-row ">
+        {{template "side-nav" .}}
+        <div class="main-content h-screen flex-1 bg-gray-100 mt-0 md:mt-0 pb-24 md:pb-5">
+            <div class="bg-blue-800 p-2 shadow text-xl text-white">
+                <h3 class="font-bold pl-2">{{template "title" .}}</h3>
+            </div>
+            {{template "main" .}}
+        </div>
+    </div>
+</body>
+{{end}}

@@ -1,0 +1,26 @@
+{{define "head-nav"}}
+    <!--Nav-->
+    <nav class="bg-gray-900 pt-2  pb-1 px-1 mt-0 h-auto fixed w-full z-20 top-0">
+        <div class="flex  items-center">
+            <div class="flex flex-shrink w-1/2  md:justify-start text-white">
+                <a href="/">
+                    <span class="text-xl pl-2"><i class="fas fa-video"></i>&nbsp;GoGo</span>
+                </a>
+            </div>
+            <div class="flex flex-1 w-1/2 md:justify-end text-white px-2">
+                <span class="relative w-full text-right">
+                    {{if .CurrentUser.IsAdmin}}
+                    <a href="/admin/" class="inline-block py-1 px-2 text-white no-underline inline-flex items-center">
+                        <i class="fas fa-toolbox pr-0 md:pr-1"></i>
+                        <span>Admin</span>
+                    </a>
+                    {{end}}
+                    <a href="/logout" class="inline-block py-1 px-2 text-white no-underline inline-flex items-center">
+                        <i class="fas fa-sign-out-alt pr-0 md:pr-1"></i>
+                        <span>Logout</span>
+                    </a>
+                </span>
+			</div>
+        </div>
+    </nav>
+{{end}}

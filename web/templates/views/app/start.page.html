@@ -1,0 +1,56 @@
+{{template "shell" .}}
+{{define "title"}}
+Join or Create a Session
+{{end}}
+{{define "main"}}
+<div class="flex flex-wrap -mx-2 p-3 ">
+    <div class="w-full px-2 mb-4">
+        <div class="bg-yellow-100 border-b-4 border-blue-600 rounded-lg shadow-lg p-5">
+            <div class="flex flex-row items-center">
+                <div class="flex-shrink pr-4">
+                    <div class="rounded-full p-5 bg-blue-600"><i class="fas fa-video fa-2x fa-inverse"></i></div>
+                </div>
+                <div class="flex-1 ">
+                    <h5 class="font-bold text-gray-600 mt-4">Start a new Session...</h5>
+                    <form method="POST" action="/session/create" class="w-full max-w-sm">
+                        <div class="flex items-center border-b border-b-2 border-teal-500 py-2">
+                            <input
+                                class="appearance-none bg-transparent border-none w-full text-gray-700 mr-3 py-1 px-2 leading-tight focus:outline-none"
+                                type="text" name="name" id="name" required placeholder="Session Name..."
+                                aria-label="Session Name">
+                            <button
+                                class="flex-shrink-0 bg-blue-500 hover:bg-blue-400 border-b-4 border-blue-700 hover:border-blue-500 text-sm text-white py-1 px-2 rounded"
+                                type="submit">
+                                Start now..
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {{range $idx, $sess := .Sessions}}
+    <div class="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/4 px-2 mb-4">
+        <div class="bg-yellow-100 border-b-4 border-yellow-600 rounded-lg shadow-lg p-5">
+            <div class="flex flex-row items-center">
+                <div class="flex-shrink pr-4">
+                    <a href="/session/{{$sess.ID}}" class="text-yellow-600 p-5 bg-gray-200 hover:bg-gray-300 text-white rounded-full  inline-flex items-center">
+                        <i class="fas fa-2x fa-play"></i>
+                    </a>
+                </div>
+                <div class="flex-1 text-right md:text-center">
+                    <h5 class="font-bold text-gray-600">
+                        <p>{{$sess.Name}}</p>
+                        <p class="text-gray-400 text-sm">ID(<span>{{$sess.ID}}</span>)</p>
+                        <p class="text-gray-500 text-base">{{len $sess.Users}} Users</p>
+                    </h5>
+                    <h3 class="font-bold text-3xl">
+                        <p class="text-gray-400 text-sm">Press Play to Join...</p>
+                    </h3>
+                </div>
+            </div>
+        </div>
+    </div>
+    {{end}}
+</div>
+{{end}}

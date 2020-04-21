@@ -11,6 +11,7 @@ import (
 //Config Struct
 type Config struct {
 	LogLevel string
+	DataBase *DataBaseConfig
 	Web      *WebConfig
 	Media    *MediaConfig
 	WebRTC   *WebRtcConfig
@@ -29,6 +30,12 @@ func (c *Config) GetLogLevel() logrus.Level {
 		return logrus.DebugLevel
 	}
 	return logrus.InfoLevel
+}
+
+//DataBaseConfig Struct
+type DataBaseConfig struct {
+	Driver           string
+	ConncetionString string
 }
 
 //WebConfig Struct
@@ -78,6 +85,10 @@ type WebRtcConfig struct {
 func GetDefaultConfig() Config {
 	return Config{
 		LogLevel: "Info",
+		DataBase: &DataBaseConfig{
+			Driver:           "sqlite3",
+			ConncetionString: ":memory:",
+		},
 		Web: &WebConfig{
 			HTTPBind: ":8080",
 			API:      true,
