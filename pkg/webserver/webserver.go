@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/gorilla/securecookie"
 	"github.com/jinzhu/gorm"
 	"github.com/rriverak/gogo/internal/config"
 	"github.com/rriverak/gogo/internal/mgt"
@@ -48,10 +47,20 @@ func Start(cfg *config.Config) {
 	if cfg.Web.App {
 		Logger.Info("Web Interface: Enabled")
 		// Sessions
-		sessionStore := gormstore.New(db, securecookie.GenerateRandomKey(32))
+		sessionKey, err := cfg.Web.GetSessionKey()
+		if err != nil {
+			Logger.Panicf("SessionKey Error: %v", err)
+		}
+		sessionStore := gormstore.New(db, sessionKey)
 
-		// middleware
-		authMiddleware := auth.RegisterWebRoutes(router, userRepo, sessionStore)
+		// CSRF
+		csrfKey, err := cfg.Web.GetCsrfKey()
+		if err != nil {
+			Logger.Panicf("CSRFKey Error: %v", err)
+		}
+		// Middleware
+		authMiddleware := auth.RegisterWebRoutes(router, csrfKey, userRepo, sessionStore)
+
 		// Users
 		app.RegisterRoutes(router, &sessionMgr, &userRepo, authMiddleware)
 		// Admin

@@ -13,6 +13,6 @@ require (
 	github.com/pion/webrtc/v2 v2.2.5
 	github.com/sirupsen/logrus v1.5.0
 	github.com/wader/gormstore v0.0.0-20200328121358-65a111a20c23
-	golang.org/x/crypto v0.0.0-20200323165209-0ec3e9974c59
+	golang.org/x/crypto v0.0.0-20200420201142-3c4aac89819a
 	gopkg.in/yaml.v2 v2.2.8
 )

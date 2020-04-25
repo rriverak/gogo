@@ -1,9 +1,11 @@
 package config
 
 import (
+	"encoding/base64"
 	"io/ioutil"
 	"log"
 
+	"github.com/gorilla/securecookie"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
@@ -40,9 +42,21 @@ type DataBaseConfig struct {
 
 //WebConfig Struct
 type WebConfig struct {
-	HTTPBind string
-	API      bool
-	App      bool
+	HTTPBind   string
+	API        bool
+	App        bool
+	SessionKey string
+	CsrfKey    string
+}
+
+//GetSessionKey from Config
+func (w *WebConfig) GetSessionKey() ([]byte, error) {
+	return base64.StdEncoding.DecodeString(w.SessionKey)
+}
+
+//GetCsrfKey from Config
+func (w *WebConfig) GetCsrfKey() ([]byte, error) {
+	return base64.StdEncoding.DecodeString(w.CsrfKey)
 }
 
 //MediaConfig Struct
@@ -90,9 +104,11 @@ func GetDefaultConfig() Config {
 			ConncetionString: ":memory:",
 		},
 		Web: &WebConfig{
-			HTTPBind: ":8080",
-			API:      true,
-			App:      true,
+			HTTPBind:   ":8080",
+			API:        true,
+			App:        true,
+			SessionKey: base64.StdEncoding.EncodeToString(securecookie.GenerateRandomKey(32)),
+			CsrfKey:    base64.StdEncoding.EncodeToString(securecookie.GenerateRandomKey(32)),
 		},
 		Media: &MediaConfig{
 			Video: &MediaVideoConfig{

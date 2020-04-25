@@ -2,7 +2,6 @@ package auth
 
 import (
 	"github.com/gorilla/mux"
-	"github.com/gorilla/securecookie"
 	"github.com/rriverak/gogo/internal/mgt"
 	"github.com/rriverak/gogo/internal/rtc"
 	"github.com/sirupsen/logrus"
@@ -13,9 +12,9 @@ import (
 var Logger *logrus.Logger
 
 //RegisterWebRoutes for Auth
-func RegisterWebRoutes(r *mux.Router, userRepo mgt.Repository, sessionStore *gormstore.Store) *Middleware {
+func RegisterWebRoutes(r *mux.Router, csrfKey []byte, userRepo mgt.Repository, sessionStore *gormstore.Store) *Middleware {
 	//Middleware for Auth
-	mw := Middleware{SessionStore: sessionStore, CsrfKey: securecookie.GenerateRandomKey(32), UserRepo: userRepo}
+	mw := Middleware{SessionStore: sessionStore, CsrfKey: csrfKey, UserRepo: userRepo}
 	// SubRouter without Middleware
 	router := r.PathPrefix("/").Subrouter()
 	router.Use(mw.CsfrMiddleware)
