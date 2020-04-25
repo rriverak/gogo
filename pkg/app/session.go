@@ -39,19 +39,15 @@ func (d *SessionController) PostNewSession(w http.ResponseWriter, r *http.Reques
 
 //GetSession Handles the GetRequest in this Controller
 func (d *SessionController) GetSession(w http.ResponseWriter, r *http.Request) {
-	// userID := r.Context().Value(auth.SessionContextKey).(uint)
+	//Get ViewData
+	data := utils.GetViewData(r)
 
 	// Get Parameter
 	sessionID := mux.Vars(r)["id"]
 
-	// Declare PageData
-	session := d.SessionManager.GetSession(sessionID)
-
-	// Getting From Values
-	// Setup Page Rendering
-	data := map[string]interface{}{
-		"Session": session,
-	}
+	// Set Session
+	data["Session"] = d.SessionManager.GetSession(sessionID)
+	// Render Page
 	utils.GetPageTemplate(d.TemplateBasePath, "views/app/session.page.html").Execute(w, data)
 }
 
