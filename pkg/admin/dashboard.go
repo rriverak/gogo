@@ -24,7 +24,7 @@ func (d *DashboardController) Get(w http.ResponseWriter, r *http.Request) {
 	activeUsers := 0
 	activeSessions := 0
 	for _, sess := range d.SessionManager.GetAllSessions() {
-		activeUsers += len(sess.Users)
+		activeUsers += len(sess.Participants)
 		activeSessions++
 	}
 	data := utils.GetViewData(r)

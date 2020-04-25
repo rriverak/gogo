@@ -10,8 +10,8 @@ import (
 	"github.com/rriverak/gogo/internal/utils"
 )
 
-//NewUser creates a new User
-func NewUser(name string, peerConnectionConfig webrtc.Configuration, media *webrtc.MediaEngine, customPayloadType uint8, codec string) (*User, error) {
+//NewParticipant creates a new Participant
+func NewParticipant(name string, peerConnectionConfig webrtc.Configuration, media *webrtc.MediaEngine, customPayloadType uint8, codec string) (*Participant, error) {
 
 	api := webrtc.NewAPI(webrtc.WithMediaEngine(*media))
 
@@ -21,7 +21,7 @@ func NewUser(name string, peerConnectionConfig webrtc.Configuration, media *webr
 		return nil, err
 	}
 
-	newUser := User{
+	part := Participant{
 		ID:           utils.RandSeq(5),
 		Name:         name,
 		Peer:         pc,
@@ -32,11 +32,11 @@ func NewUser(name string, peerConnectionConfig webrtc.Configuration, media *webr
 		DataChannels: map[string]*webrtc.DataChannel{},
 	}
 
-	return &newUser, nil
+	return &part, nil
 }
 
-//User can Connect to a Session
-type User struct {
+//Participant can connect to a Session
+type Participant struct {
 	ID            string
 	Name          string
 	MediaEngine   *webrtc.MediaEngine
@@ -50,92 +50,92 @@ type User struct {
 }
 
 //VideoOutput is the Video Pipeline Output Track
-func (u *User) VideoOutput() *webrtc.Track {
-	if u.outVideoTrack == nil {
+func (p *Participant) VideoOutput() *webrtc.Track {
+	if p.outVideoTrack == nil {
 		// Create a new Mixed Video Track if not exists
-		mixedVideoTrack, newTrackErr := u.Peer.NewTrack(u.PayloadType, rand.Uint32(), "video", "video-pipe")
+		mixedVideoTrack, newTrackErr := p.Peer.NewTrack(p.PayloadType, rand.Uint32(), "video", "video-pipe")
 		if newTrackErr != nil {
-			Logger.Errorf("Error: %v PayloadType: %v", newTrackErr, u.PayloadType)
+			Logger.Errorf("Error: %v PayloadType: %v", newTrackErr, p.PayloadType)
 		}
-		Logger.Infof("User => %v create output VideoTrack: Code: %v Payload: %v", u.Name, mixedVideoTrack.Codec().Name, mixedVideoTrack.Codec().PayloadType)
-		u.outVideoTrack = mixedVideoTrack
+		Logger.Infof("Participant => %v create output VideoTrack: Code: %v Payload: %v", p.Name, mixedVideoTrack.Codec().Name, mixedVideoTrack.Codec().PayloadType)
+		p.outVideoTrack = mixedVideoTrack
 	}
-	return u.outVideoTrack
+	return p.outVideoTrack
 }
 
 //AudioOutput is the Audio Pipeline Output Track
-func (u *User) AudioOutput() *webrtc.Track {
-	if u.outAudioTrack == nil {
+func (p *Participant) AudioOutput() *webrtc.Track {
+	if p.outAudioTrack == nil {
 		// Create a new Mixed Video Track if not exists
-		mixedAudioTrack, newTrackErr := u.Peer.NewTrack(webrtc.DefaultPayloadTypeOpus, rand.Uint32(), "audio", "audio-pipe")
+		mixedAudioTrack, newTrackErr := p.Peer.NewTrack(webrtc.DefaultPayloadTypeOpus, rand.Uint32(), "audio", "audio-pipe")
 		if newTrackErr != nil {
 			Logger.Error(newTrackErr)
 		}
-		Logger.Infof("User => %v create output AudioTrack: Code: %v Payload: %v", u.Name, mixedAudioTrack.Codec().Name, mixedAudioTrack.Codec().PayloadType)
-		u.outAudioTrack = mixedAudioTrack
+		Logger.Infof("Participant => %v create output AudioTrack: Code: %v Payload: %v", p.Name, mixedAudioTrack.Codec().Name, mixedAudioTrack.Codec().PayloadType)
+		p.outAudioTrack = mixedAudioTrack
 	}
-	return u.outAudioTrack
+	return p.outAudioTrack
 }
 
 //Anwser generates the Anwser for the SDP Handshake
-func (u *User) Anwser(offer webrtc.SessionDescription) webrtc.SessionDescription {
-	// Set the remote SessionDescription for User
-	err := u.Peer.SetRemoteDescription(offer)
+func (p *Participant) Anwser(offer webrtc.SessionDescription) webrtc.SessionDescription {
+	// Set the remote SessionDescription for Participant
+	err := p.Peer.SetRemoteDescription(offer)
 	if err != nil {
 		panic(err)
 	}
 
-	// Create answer for User
-	answer, err := u.Peer.CreateAnswer(nil)
+	// Create answer for Participant
+	answer, err := p.Peer.CreateAnswer(nil)
 	if err != nil {
 		panic(err)
 	}
 
-	// Sets the LocalDescription, and starts our UDP listeners for User
-	err = u.Peer.SetLocalDescription(answer)
+	// Sets the LocalDescription, and starts our UDP listeners for Participant
+	err = p.Peer.SetLocalDescription(answer)
 	if err != nil {
 		panic(err)
 	}
 	return answer
 }
 
-//OnUserSessionMessage attach all known DataChannels
-func (u *User) OnUserSessionMessage(session *Session) func(m webrtc.DataChannelMessage) {
+//OnParticipantSessionMessage attach Session DataChannels
+func (p *Participant) OnParticipantSessionMessage(session *Session) func(m webrtc.DataChannelMessage) {
 	return func(message webrtc.DataChannelMessage) {
 		msg := string(message.Data)
-		Logger.Infof("User => %v sends to Session => '%v'", u.Name, msg)
+		Logger.Infof("Participant => %v sends to Session => '%v'", p.Name, msg)
 		switch msg {
 		case "open":
 			break
 		case "close":
-			session.DisconnectUser(u) // Remove from Session
+			session.DisconnectParticipant(p) // Remove from Session
 			break
 		}
 	}
 }
 
-//OnUserConnectionStateChangedHandler handles user Timeout
-func (u *User) OnUserConnectionStateChangedHandler(session *Session) func(f webrtc.PeerConnectionState) {
+//OnParticipantConnectionStateChangedHandler handles Participant Timeout
+func (p *Participant) OnParticipantConnectionStateChangedHandler(session *Session) func(f webrtc.PeerConnectionState) {
 	return func(f webrtc.PeerConnectionState) {
 		if f == webrtc.PeerConnectionStateDisconnected || f == webrtc.PeerConnectionStateFailed {
-			Logger.Infof("User => %v has a Timeout!", u.Name)
-			session.RemoveUser(u.ID)
+			Logger.Infof("Participant => %v has a Timeout!", p.Name)
+			session.RemoveParticipant(p.ID)
 		}
 	}
 }
 
 //OnRemoteTrackHandler dasdas
-func (u *User) OnRemoteTrackHandler(session *Session) func(*webrtc.Track, *webrtc.RTPReceiver) {
+func (p *Participant) OnRemoteTrackHandler(session *Session) func(*webrtc.Track, *webrtc.RTPReceiver) {
 	return func(remoteTrack *webrtc.Track, receiver *webrtc.RTPReceiver) {
-		Logger.Infof("User => %v send a Track with Codec: %v Payloadtyp: %v", u.Name, remoteTrack.Codec().Name, remoteTrack.PayloadType())
-		if remoteTrack.PayloadType() == u.VideoOutput().PayloadType() {
+		Logger.Infof("Participant => %v send a Track with Codec: %v Payloadtyp: %v", p.Name, remoteTrack.Codec().Name, remoteTrack.PayloadType())
+		if remoteTrack.PayloadType() == p.VideoOutput().PayloadType() {
 			// Video Track
 			// Send a PLI on an interval so that the publisher is pushing a keyframe every rtcpPLIInterval
 			// This can be less wasteful by processing incoming RTCP events, then we would emit a NACK/PLI when a viewer requests it
 			go func() {
 				ticker := time.NewTicker(rtcpPLIInterval)
 				for range ticker.C {
-					if rtcpSendErr := u.Peer.WriteRTCP([]rtcp.Packet{&rtcp.PictureLossIndication{MediaSSRC: remoteTrack.SSRC()}}); rtcpSendErr != nil {
+					if rtcpSendErr := p.Peer.WriteRTCP([]rtcp.Packet{&rtcp.PictureLossIndication{MediaSSRC: remoteTrack.SSRC()}}); rtcpSendErr != nil {
 						if rtcpSendErr == io.ErrClosedPipe {
 							ticker.Stop()
 						} else {
@@ -156,11 +156,11 @@ func (u *User) OnRemoteTrackHandler(session *Session) func(*webrtc.Track, *webrt
 					}
 					Logger.Errorf("Read on RemoteTrack Error: %v", readErr)
 				} else {
-					// Push RTP Samples to GStreamer Pipeline with specific appsrc (user_id)
-					session.VideoPipeline.WriteSampleToInputSource(rtpBuf[:i], u.ID)
+					// Push RTP Samples to GStreamer Pipeline with specific appsrc (participant_id)
+					session.VideoPipeline.WriteSampleToInputSource(rtpBuf[:i], p.ID)
 				}
 			}
-		} else if remoteTrack.PayloadType() == u.AudioOutput().PayloadType() {
+		} else if remoteTrack.PayloadType() == p.AudioOutput().PayloadType() {
 			// Audio Track
 			// Create a Buffer Loop
 			rtpBuf := make([]byte, 1400)
@@ -173,15 +173,15 @@ func (u *User) OnRemoteTrackHandler(session *Session) func(*webrtc.Track, *webrt
 					}
 					Logger.Errorf("Read on RemoteTrack Error: %v", readErr)
 				} else {
-					// Push RTP Samples to GStreamer Pipeline with specific appsrc (user_id)
-					session.AudioPipeline.WriteSampleToInputSource(rtpBuf[:i], u.ID)
+					// Push RTP Samples to GStreamer Pipeline with specific appsrc (participant_id)
+					session.AudioPipeline.WriteSampleToInputSource(rtpBuf[:i], p.ID)
 				}
 			}
 		} else {
 			Logger.Error("OnTrack Codec not match...!")
 			Logger.Errorf("	RemoteTrack=> Codec %v::%v", remoteTrack.PayloadType(), remoteTrack.Codec().Name)
-			Logger.Errorf("	VideoTrack => Codec %v::%v", u.VideoOutput().PayloadType(), u.VideoOutput().Codec().Name)
-			Logger.Errorf("	AudioTrack => Codec %v::%v", u.AudioOutput().PayloadType(), u.AudioOutput().Codec().Name)
+			Logger.Errorf("	VideoTrack => Codec %v::%v", p.VideoOutput().PayloadType(), p.VideoOutput().Codec().Name)
+			Logger.Errorf("	AudioTrack => Codec %v::%v", p.AudioOutput().PayloadType(), p.AudioOutput().Codec().Name)
 		}
 	}
 }

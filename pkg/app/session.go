@@ -74,7 +74,7 @@ func (d *SessionController) PostSDPSession(w http.ResponseWriter, r *http.Reques
 	if session != nil {
 		// Create a Session User
 		randUserName := fmt.Sprintf("User-%v", utils.RandSeq(3))
-		user, _ := session.CreateUser(randUserName, offer)
+		user, _ := session.CreateParticipant(randUserName, offer)
 
 		// Getting the Answer
 		answer := signal.Encode(user.Anwser(offer))

@@ -53,9 +53,9 @@ func (s *SessionManager) SaveSession(session *Session) error {
 func (s *SessionManager) RemoveSession(sessionID string) bool {
 	if sess, found := s.SessionRegister.Get(sessionID); found {
 		session := sess.(*Session)
-		// Disconnect all Users
-		for _, usr := range session.Users {
-			session.DisconnectUser(&usr)
+		// Disconnect all Participants
+		for _, usr := range session.Participants {
+			session.DisconnectParticipant(&usr)
 		}
 		// Remove Session from Cache
 		s.SessionRegister.Delete(sessionID)

@@ -59,9 +59,9 @@ func (s *SessionHandler) JoinSessionHandler(w http.ResponseWriter, r *http.Reque
 	body, _ := ioutil.ReadAll(r.Body)
 	signal.Decode(string(body), &offer)
 
-	// Create User from Session
-	newUser, err := session.CreateUser(userName, offer)
-	answer := newUser.Anwser(offer)
+	// Create Participant from Session
+	newPart, err := session.CreateParticipant(userName, offer)
+	answer := newPart.Anwser(offer)
 
 	// Save the current Session in Cache.
 	err = s.SessionManager.SaveSession(session)

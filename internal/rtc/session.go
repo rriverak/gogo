@@ -20,7 +20,7 @@ type Session struct {
 	Codec         string        `json:"Codec"`
 	VideoPipeline *gst.Pipeline `json:"-"`
 	AudioPipeline *gst.Pipeline `json:"-"`
-	Users         []User        `json:"Users"`
+	Participants  []Participant `json:"Participants"`
 	config        *config.Config
 }
 
@@ -28,7 +28,7 @@ type Session struct {
 func (s *Session) Start() {
 	// Create Pipeline Channels
 	channels := []*gst.Channel{}
-	for _, usr := range s.Users {
+	for _, usr := range s.Participants {
 		channels = append(channels, gst.NewChannel(usr.ID, usr.Name))
 	}
 
@@ -50,7 +50,7 @@ func (s *Session) Start() {
 		s.AudioPipeline.Start()
 	}
 
-	for _, usr := range s.Users {
+	for _, usr := range s.Participants {
 		if s.VideoPipeline != nil {
 			s.VideoPipeline.AddOutputTrack(usr.VideoOutput())
 		}
@@ -83,13 +83,13 @@ func (s *Session) Restart() {
 	s.Start()
 }
 
-// CreateUser in the Session
-func (s *Session) CreateUser(name string, offer webrtc.SessionDescription) (*User, error) {
+// CreateParticipant in the Session
+func (s *Session) CreateParticipant(name string, offer webrtc.SessionDescription) (*Participant, error) {
 	// Get MediaEngine
 	mediaCfg := s.config.Media
 	customPayloadType, codec, media := GetMediaEngineForSDPOffer(offer, mediaCfg)
 
-	//  Create New User with Peer
+	//  Create New Participant with Peer
 	var peerConnectionConfig webrtc.Configuration = webrtc.Configuration{
 		ICEServers: []webrtc.ICEServer{
 			{
@@ -97,7 +97,7 @@ func (s *Session) CreateUser(name string, offer webrtc.SessionDescription) (*Use
 			},
 		},
 	}
-	newUser, err := NewUser(name, peerConnectionConfig, media, customPayloadType, codec)
+	newPart, err := NewParticipant(name, peerConnectionConfig, media, customPayloadType, codec)
 	if err != nil {
 		return nil, err
 	}
@@ -105,14 +105,14 @@ func (s *Session) CreateUser(name string, offer webrtc.SessionDescription) (*Use
 	if s.config.Media.Video.Enabled {
 		// Log Codec
 		for _, cdec := range media.GetCodecsByKind(webrtc.RTPCodecTypeVideo) {
-			Logger.Infof("User => %v offer => Video Codec: %v PayloadType: %v Clock: %v", name, cdec.Name, cdec.PayloadType, cdec.ClockRate)
+			Logger.Infof("Participant => %v offer => Video Codec: %v PayloadType: %v Clock: %v", name, cdec.Name, cdec.PayloadType, cdec.ClockRate)
 		}
 		// Allow the Peer to send a Video Stream
-		if _, err = newUser.Peer.AddTransceiverFromKind(webrtc.RTPCodecTypeVideo); err != nil {
+		if _, err = newPart.Peer.AddTransceiverFromKind(webrtc.RTPCodecTypeVideo); err != nil {
 			panic(err)
 		}
 		// Add VideoMixed Track to Peer
-		if _, err = newUser.Peer.AddTrack(newUser.VideoOutput()); err != nil {
+		if _, err = newPart.Peer.AddTrack(newPart.VideoOutput()); err != nil {
 			panic(err)
 		}
 	}
@@ -120,64 +120,64 @@ func (s *Session) CreateUser(name string, offer webrtc.SessionDescription) (*Use
 	if s.config.Media.Audio.Enabled {
 		// Log Codec
 		for _, cdec := range media.GetCodecsByKind(webrtc.RTPCodecTypeAudio) {
-			Logger.Infof("User => %v offer Audio Codec: %v PayloadType: %v Clock: %v", name, cdec.Name, cdec.PayloadType, cdec.ClockRate)
+			Logger.Infof("Participant => %v offer Audio Codec: %v PayloadType: %v Clock: %v", name, cdec.Name, cdec.PayloadType, cdec.ClockRate)
 		}
 		// Allow the Peer to send a Audio Stream
-		if _, err = newUser.Peer.AddTransceiverFromKind(webrtc.RTPCodecTypeAudio); err != nil {
+		if _, err = newPart.Peer.AddTransceiverFromKind(webrtc.RTPCodecTypeAudio); err != nil {
 			panic(err)
 		}
 		// Add AudioMixed Track to Peer
-		if _, err = newUser.Peer.AddTrack(newUser.AudioOutput()); err != nil {
+		if _, err = newPart.Peer.AddTrack(newPart.AudioOutput()); err != nil {
 			panic(err)
 		}
 	}
 
-	// Register Users RemoteTrack with Session
-	newUser.Peer.OnTrack(newUser.OnRemoteTrackHandler(s))
+	// Register Participants RemoteTrack with Session
+	newPart.Peer.OnTrack(newPart.OnRemoteTrackHandler(s))
 	// Register Session Auto-Leave on Timeout
-	newUser.Peer.OnConnectionStateChange(newUser.OnUserConnectionStateChangedHandler(s))
-	s.Codec = newUser.Codec
+	newPart.Peer.OnConnectionStateChange(newPart.OnParticipantConnectionStateChangedHandler(s))
+	s.Codec = newPart.Codec
 	// Register Session DataChannel
 	var id uint16 = 1
 	negotiated := false
 	opt := webrtc.DataChannelInit{Negotiated: &negotiated, ID: &id}
-	dc, err := newUser.Peer.CreateDataChannel("session", &opt)
+	dc, err := newPart.Peer.CreateDataChannel("session", &opt)
 	if err != nil {
 		Logger.Error(err)
 	}
-	dc.OnMessage(newUser.OnUserSessionMessage(s))
+	dc.OnMessage(newPart.OnParticipantSessionMessage(s))
 
-	// Add User to Session
-	s.AddUser(*newUser)
-	return newUser, nil
+	// Add Participant to Session
+	s.AddParticipant(*newPart)
+	return newPart, nil
 }
 
-//AddUser to Session and restart Pipeline
-func (s *Session) AddUser(newUser User) {
-	// Add user to Collection
-	if s.Users == nil {
-		s.Users = make([]User, 0)
+//AddParticipant to Session and restart Pipeline
+func (s *Session) AddParticipant(newPart Participant) {
+	// Add Participant to Collection
+	if s.Participants == nil {
+		s.Participants = make([]Participant, 0)
 	}
-	s.Users = append(s.Users, newUser)
+	s.Participants = append(s.Participants, newPart)
 
 	// Restart Session Pipeline
 	s.Restart()
 }
 
-//RemoveUser from with ID from Session and restart Pipeline
-func (s *Session) RemoveUser(usrID string) {
-	if s.Users == nil {
-		s.Users = make([]User, 0)
+//RemoveParticipant from with ID from Session and restart Pipeline
+func (s *Session) RemoveParticipant(usrID string) {
+	if s.Participants == nil {
+		s.Participants = make([]Participant, 0)
 	}
-	tmpUsers := []User{}
-	for _, usr := range s.Users {
+	tmpParts := []Participant{}
+	for _, usr := range s.Participants {
 		if usr.ID != usrID {
-			tmpUsers = append(tmpUsers, usr)
+			tmpParts = append(tmpParts, usr)
 		}
 	}
-	s.Users = tmpUsers
+	s.Participants = tmpParts
 
-	if len(s.Users) != 0 {
+	if len(s.Participants) != 0 {
 		s.Restart()
 	} else {
 		s.Stop()
@@ -185,8 +185,8 @@ func (s *Session) RemoveUser(usrID string) {
 	}
 }
 
-// DisconnectUser a User from Session
-func (s *Session) DisconnectUser(user *User) {
-	s.RemoveUser(user.ID) // Remove from Session
-	user.Peer.Close()     // Close peer Connection
+// DisconnectParticipant from Session
+func (s *Session) DisconnectParticipant(part *Participant) {
+	s.RemoveParticipant(part.ID) // Remove from Session
+	part.Peer.Close()            // Close peer Connection
 }
