@@ -33,9 +33,9 @@ func GetPageTemplate(basePath string, viewsPath string) *template.Template {
 	viewsPaths := []string{
 		viewsPath,
 		"layouts/shell.layout.html",
-		"layouts/page/page.layout.html",
 		"layouts/page/head-nav.layout.html",
 		"layouts/page/side-nav.layout.html",
+		"layouts/page/page.layout.html",
 	}
 
 	views := []string{}
@@ -62,9 +62,10 @@ func GetPlainTemplate(basePath string, viewsPath string) *template.Template {
 }
 
 func getCachedTemplate(views []string, viewsPath string) *template.Template {
-	if val, ok := templateMap[viewsPath]; ok {
-		return val
+	/* if val, ok := templateMap[viewsPath]; ok {
+	return val
 	}
+	*/
 	templateMap[viewsPath] = template.Must(template.ParseFiles(views...))
 	return templateMap[viewsPath]
 }

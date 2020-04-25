@@ -23,7 +23,7 @@ type SessionController struct {
 	SessionManager   *rtc.SessionManager
 }
 
-//PostNewSession Handles the GetRequest in this Controller
+//PostNewSession Handles the PostRequest to create a new Session
 func (d *SessionController) PostNewSession(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 
@@ -37,7 +37,7 @@ func (d *SessionController) PostNewSession(w http.ResponseWriter, r *http.Reques
 	w.WriteHeader(http.StatusSeeOther)
 }
 
-//GetSession Handles the GetRequest in this Controller
+//GetSession Handles the GetRequest to Join a Session
 func (d *SessionController) GetSession(w http.ResponseWriter, r *http.Request) {
 	//Get ViewData
 	data := utils.GetViewData(r)
@@ -51,7 +51,7 @@ func (d *SessionController) GetSession(w http.ResponseWriter, r *http.Request) {
 	utils.GetPageTemplate(d.TemplateBasePath, "views/app/session.page.html").Execute(w, data)
 }
 
-//PostSDPSession Handles the GetRequest in this Controller
+//PostSDPSession Handles the SDP for the Session
 func (d *SessionController) PostSDPSession(w http.ResponseWriter, r *http.Request) {
 	// userID := r.Context().Value(auth.SessionContextKey).(uint)
 

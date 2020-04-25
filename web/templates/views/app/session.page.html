@@ -3,135 +3,95 @@
 Session {{.Session.Name}}
 {{end}}
 {{define "main"}}
+<script src="/assets/js/session.js"></script>
 <script>
-    let pc = new RTCPeerConnection({
-        iceServers: [
-            {
-                urls: 'stun:stun.l.google.com:19302'
-            }
-        ]
-    })
-    pc.ontrack = function (event) {
-        if (event && event.streams) {
-            const stream = event.streams[0]
-            if (stream.id === "video-pipe") {
-                console.log("Add Video Stream")
-                var el = document.createElement("video")
-                el.srcObject = event.streams[0]
-                el.id = "main-video"
-                el.autoplay = true
-                el.controls = false
-                el.muted = true
-                el.onerror = (err) => { console.log(err) }
-                el.onplaying = (ev) => { console.log(ev) }
-                el.setAttribute("playsinline", "")
-                el.setAttribute("class", "w-full")
-                document.getElementById('video-body').appendChild(el)
-            }
-
-            if (stream.id === "audio-pipe") {
-                console.log("Add Audio Track")
-                let el = document.getElementById('main-video')
-                if (el.srcObject) {
-                    el.srcObject.addTrack(event.track)
-                }
-            }
-        }
-    }
-    var sendOffer = () => {
-        fetch('/session/sdp/{{.Session.ID}}', {
-            method: 'POST',
-            body: btoa(JSON.stringify(pc.localDescription))
-        }).then((resp) => {
-            try {
-                resp.text().then((text) => {
-                    const answer = JSON.parse(atob(text))
-                    pc.setRemoteDescription(new RTCSessionDescription(answer))
-                })
-            } catch (e) {
-                alert(e)
-            }
-        });
-    }
-
-    var createOffer = () => {
-        navigator.mediaDevices.getUserMedia(
-            {
-                "audio": true,
-                "video": {
-                    width: 320,
-                    height: 320,
-                },
-            }).then(stream => {
-                stream.getTracks().forEach(function (track) {
-                    pc.addTrack(track, stream);
-                });
-                pc.addTransceiver('video')
-                pc.addTransceiver('audio')
-                pc.createOffer()
-                    .then(d => {
-                        pc.setLocalDescription(d).then(() => {
-                            sendOffer()
-                        })
-                    })
-                    .catch((msg) => { console.log(msg); })
-            }).catch((msg) => { console.log(msg); })
-
-    }
-    createOffer()
-
+    window.session_id = "{{.Session.ID}}";
 </script>
-<div class="flex flex-wrap -mx-2 p-3 ">
-    <div class="md:flex w-full">
-
-        <div class="md:flex-shrink-0" >
-            <div class="w-full bg-white border-transparent rounded-lg shadow-lg">
-                <div class="bg-blue-700 border-b-2 border-blue-500 rounded-tl-lg rounded-tr-lg p-2">
-                    <h5 class="font-bold uppercase text-white">Stream</h5>
+<div class="flex flex-wrap m-1 h-full" style="height: 89%;">
+    <div class="w-full bg-black border-transparent rounded-lg shadow-lg">
+        <div class="video-wrapper flex flex-wrap justify-center h-full">
+            <div class="w-full rounded-tl-lg rounded-tr-lg p-2 overlay-top">
+                <button type="button" id="btnLogs"
+                    class="bg-blue-500 hover:bg-blue-700 text-white text-xs font-bold py-2 px-4 rounded-full">
+                    Logs
+                </button>
+                <button type="button" id="btnSettings"
+                    class="bg-green-500 hover:bg-green-700 text-white text-xs font-bold py-2 px-4 rounded-full">
+                    Settings
+                </button>
+            </div>
+            <div class="ml-5 mt-10 overlay-log rounded" id="logs">
+                <table class="text-white text-xs">
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+            <div class="w-3/5 h-full rounded-lg ">
+                <video id="main-video" class="h-full w-full rounded-lg" autoplay="" playsinline=""></video>
+            </div>
+            <div class="video-sidebar bg-gray-900 w-2/5 rounded-lg">
+                <div>
+                    Users
                 </div>
-                <div id="video-body" class="w-full">
-
-                </div>
-                <div class="rounded-bl-lg rounded-br-lg p-2">
-                    <a href="#" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-full">
-                        Exit
-                    </a>
+            </div>
+            <div class="w-full rounded-bl-lg rounded-br-lg p-2 overlay-bottom items-center justify-center">
+                <div class="w-full text-center">
+                    <button type="button"
+                        class="bg-red-500 hover:bg-red-700 text-2xl text-white font-bold py-2 px-4 rounded-full">
+                        <i class="fas fa-phone-slash fa-flip-horizontal"></i>
+                    </button>
                 </div>
             </div>
         </div>
-        <div class="mt-4 md:mt-0 md:ml-6 ">
-            <div class="w-full bg-white border-transparent rounded-lg shadow-lg">
-                <div class="bg-orange-600 border-b-2 border-orange-500 rounded-tl-lg rounded-tr-lg p-2">
-                    <h5 class="font-bold uppercase text-white">Active Users</h5>
+    </div>
+</div>
+{{end}}
+
+{{define "modal-template"}}
+<!--Modal-->
+<div class="modal opacity-0 pointer-events-none fixed w-full h-full top-0 left-0 flex items-center justify-center">
+    <div class="modal-overlay absolute w-full h-full bg-gray-900 opacity-50"></div>
+    <div class="modal-container bg-white w-11/12 md:max-w-md mx-auto rounded shadow-lg z-50 overflow-y-auto">
+        <div class="modal-content py-4 text-left px-6">
+            <!--Title-->
+            <div class="flex justify-between items-center pb-3">
+                <p class="text-2xl font-bold">Devices</p>
+            </div>
+            <!--Body-->
+            <div class="body">
+                <div class="flex flex-wrap mb-6">
+                    <label class="block text-gray-700 font-bold pr-4" for="inline-full-name">
+                        Video Device
+                    </label>
+                    <div class="inline-block relative">
+                        <select id="video_devices"
+                            class="block appearance-none w-full bg-white border border-gray-400 hover:border-gray-500 px-4 py-2 pr-8 rounded shadow leading-tight focus:outline-none focus:shadow-outline">
+                        </select>
+                        <div
+                            class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                    </div>
                 </div>
-                <div class="w-full">
-                    <table class="w-full">
-                        <thead>
-                            <tr>
-                                <th class="text-left border border-gray-400 px-4 py-2 text-blue-900">ID</th>
-                                <th class="text-left border border-gray-400 px-4 py-2 text-blue-900">Name</th>
-                            </tr>
-                        </thead>
-    
-                        <tbody>
-                            {{range $idx, $sess := .Session.Users}}
-                            <tr>
-                                <td class="border border-gray-400 px-4 py-1">{{$sess.ID}}</td>
-                                <td class="border border-gray-400 px-4 py-1">{{$sess.Name}}</td>
-                            </tr>
-                            {{end}}
-    
-                            {{ $usersCount := len .Session.Users }}
-                            {{if eq $usersCount 0 }}
-                            <tr>
-                                <td class="text-center text-gray-400" colspan="2">
-                                    <div class="py-5">No Users found..</div>
-                                </td>
-                            </tr>
-                            {{end}}
-                        </tbody>
-                    </table>
+                <div class="flex flex-wrap mb-6">
+                    <label class="block text-gray-700 font-bold pr-4" for="inline-full-name">
+                        Audio Device
+                    </label>
+                    <div class="inline-block relative">
+                        <select id="audio_devices"
+                            class="block appearance-none w-full bg-white border border-gray-400 hover:border-gray-500 px-4 py-2 pr-8 rounded shadow leading-tight focus:outline-none focus:shadow-outline">
+                        </select>
+                        <div
+                            class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                    </div>
                 </div>
+            </div>
+            <!--Footer-->
+            <div class="flex justify-end pt-2">
+                <button
+                    class="modal-close px-4 bg-indigo-500 p-3 rounded-lg text-white hover:bg-indigo-400">Start</button>
             </div>
         </div>
     </div>

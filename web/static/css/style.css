@@ -2,3 +2,55 @@ textarea {
     width: 500px;
     min-height: 75px;
 }
+
+.modal {
+    transition: opacity 0.25s ease;
+    z-index: 2;
+}
+
+body.modal-active {
+    overflow-x: hidden;
+    overflow-y: visible !important;
+}
+
+.video-wrapper {
+    position: relative;
+}
+
+.video-wrapper video {
+    background-color: black;
+}
+
+
+.overlay-top{
+    background-color: rgba(0, 0, 0, .7);
+    position: absolute; 
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1;
+}
+
+.overlay-log{
+    position: absolute; 
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1;
+}
+
+
+.overlay-bottom{
+    background-color: rgba(0, 0, 0, .7);
+    position: absolute; 
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1;
+}
+
+.video-sidebar{
+    transition: display 0.5s linear;
+}
+
+
