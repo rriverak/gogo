@@ -22,6 +22,8 @@ body.modal-active {
 }
 
 
+
+
 .overlay-top{
     background-color: rgba(0, 0, 0, .7);
     position: absolute; 
@@ -50,7 +52,15 @@ body.modal-active {
 }
 
 .video-sidebar{
-    transition: display 0.5s linear;
+    width: 0;
+    display: none;
 }
+
+.video-sidebar.open{
+    width: 40% ;
+    display: block;
+
+}
+
 
 

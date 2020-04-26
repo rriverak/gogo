@@ -88,6 +88,14 @@ window.common = (function(){
         })
     }
 
+    function createDataChannel(peer, sessionName, sessionOpts){
+        return peer.createDataChannel(sessionName, sessionOpts)
+    }
+
+    function createSessionDataChannel(peer){
+        return createDataChannel(peer, 'session')
+    }
+
     function sendSDPOffer(sessionID, desc){
         return new Promise(
             (resolve)=>{
@@ -114,6 +122,7 @@ window.common = (function(){
         GetAudioDevices: getAudioDevices,
         CreatePeerConnection: createPeerConnection,
         GetMediaStream: getMediaStream,
-        SendSDPOffer: sendSDPOffer
+        SendSDPOffer: sendSDPOffer,
+        CreateSessionDataChannel: createSessionDataChannel,
     }
 })();

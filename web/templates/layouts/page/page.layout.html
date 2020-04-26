@@ -3,9 +3,9 @@
 <body class="bg-gray-900 font-sans leading-normal flex tracking-normal h-screen">
     {{block "modal-template" .}}{{end}}
     {{block "head-nav" .}}{{end}}
-    <div class="flex flex-col flex-grow">
+    <div class="flex flex-grow">
         {{block "side-nav" .}}{{end}}
-        <div class="main-content bg-gray-100 h-full">
+        <div class="main-content bg-gray-100 h-full w-full">
             <div class="bg-blue-800 pb-2 pt-3 shadow mt-10  text-white ">
                 <h3 class="font-bold pl-2 ">{{template "title" .}}</h3>
             </div>

@@ -1,6 +1,8 @@
 package rtc
 
 import (
+	"encoding/json"
+
 	"github.com/pion/webrtc/v2"
 	"github.com/rriverak/gogo/internal/config"
 	"github.com/rriverak/gogo/internal/gst"
@@ -137,19 +139,41 @@ func (s *Session) CreateParticipant(name string, offer webrtc.SessionDescription
 	// Register Session Auto-Leave on Timeout
 	newPart.Peer.OnConnectionStateChange(newPart.OnParticipantConnectionStateChangedHandler(s))
 	s.Codec = newPart.Codec
+
+	// Add Participant to Session
+	s.AddParticipant(*newPart)
+
 	// Register Session DataChannel
-	var id uint16 = 1
-	negotiated := false
-	opt := webrtc.DataChannelInit{Negotiated: &negotiated, ID: &id}
-	dc, err := newPart.Peer.CreateDataChannel("session", &opt)
+	Logger.Info("Create Session DC")
+	dc, err := newPart.Peer.CreateDataChannel("session", nil)
 	if err != nil {
 		Logger.Error(err)
 	}
 	dc.OnMessage(newPart.OnParticipantSessionMessage(s))
-
-	// Add Participant to Session
-	s.AddParticipant(*newPart)
+	dc.OnOpen(func() {
+		s.BroadcastState()
+	})
+	dc.OnError(func(err error) {
+		Logger.Error(err)
+	})
+	newPart.DataChannels["Session"] = dc
 	return newPart, nil
+}
+
+//BroadcastState to the DataChannel
+func (s *Session) BroadcastState() {
+	for _, part := range s.Participants {
+		if dc := part.DataChannels["Session"]; dc != nil {
+			//get current state
+			state := map[string]interface{}{}
+			state["Users"] = s.Participants
+			state["ID"] = s.ID
+			state["Name"] = s.Name
+			//Send state
+			data, _ := json.Marshal(state)
+			dc.SendText(string(data))
+		}
+	}
 }
 
 //AddParticipant to Session and restart Pipeline

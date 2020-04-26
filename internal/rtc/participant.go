@@ -37,16 +37,16 @@ func NewParticipant(name string, peerConnectionConfig webrtc.Configuration, medi
 
 //Participant can connect to a Session
 type Participant struct {
-	ID            string
-	Name          string
-	MediaEngine   *webrtc.MediaEngine
-	API           *webrtc.API
+	ID            string              `json:"ID"`
+	Name          string              `json:"Name"`
+	MediaEngine   *webrtc.MediaEngine `json:"-"`
+	API           *webrtc.API         `json:"-"`
 	outVideoTrack *webrtc.Track
 	outAudioTrack *webrtc.Track
-	Codec         string
-	PayloadType   uint8
-	Peer          *webrtc.PeerConnection
-	DataChannels  map[string]*webrtc.DataChannel
+	Codec         string                         `json:"-"`
+	PayloadType   uint8                          `json:"-"`
+	Peer          *webrtc.PeerConnection         `json:"-"`
+	DataChannels  map[string]*webrtc.DataChannel `json:"-"`
 }
 
 //VideoOutput is the Video Pipeline Output Track
@@ -106,6 +106,9 @@ func (p *Participant) OnParticipantSessionMessage(session *Session) func(m webrt
 		Logger.Infof("Participant => %v sends to Session => '%v'", p.Name, msg)
 		switch msg {
 		case "open":
+			break
+		case "state":
+			session.BroadcastState()
 			break
 		case "close":
 			session.DisconnectParticipant(p) // Remove from Session

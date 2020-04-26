@@ -1,16 +1,16 @@
 {{template "shell" .}}
 {{define "title"}}
-Session {{.Session.Name}}
+Session: {{.Session.Name}}
 {{end}}
 {{define "main"}}
 <script src="/assets/js/session.js"></script>
 <script>
     window.session_id = "{{.Session.ID}}";
 </script>
-<div class="flex flex-wrap m-1 h-full" style="height: 89%;">
-    <div class="w-full bg-black border-transparent rounded-lg shadow-lg">
+<div class="flex flex-wrap h-full" style="height: 89%;">
+    <div class="w-full bg-black border-transparent rounded-bl-lg rounded-br-lg shadow-lg">
         <div class="video-wrapper flex flex-wrap justify-center h-full">
-            <div class="w-full rounded-tl-lg rounded-tr-lg p-2 overlay-top">
+            <div class="overlay-top w-3/5 rounded-tl-lg rounded-tr-lg p-2">
                 <button type="button" id="btnLogs"
                     class="bg-blue-500 hover:bg-blue-700 text-white text-xs font-bold py-2 px-4 rounded-full">
                     Logs
@@ -20,7 +20,7 @@ Session {{.Session.Name}}
                     Settings
                 </button>
             </div>
-            <div class="ml-5 mt-10 overlay-log rounded" id="logs">
+            <div class="ml-3 mt-12 overlay-log rounded" id="logs">
                 <table class="text-white text-xs">
                     <tbody>
                     </tbody>
@@ -29,12 +29,24 @@ Session {{.Session.Name}}
             <div class="w-3/5 h-full rounded-lg ">
                 <video id="main-video" class="h-full w-full rounded-lg" autoplay="" playsinline=""></video>
             </div>
-            <div class="video-sidebar bg-gray-900 w-2/5 rounded-lg">
-                <div>
-                    Users
+            <div id="video-sidebar" class="video-sidebar bg-gray-900 text-white w-2/5 rounded-br-lg">
+                <div class="w-full p-2 items-center flex">
+                    <h2 class="py-2 px-4 ">Users</h2>
+                </div>
+                <div class="w-full px-2 text-gray-500 border-solid border-t-2 border-b-2 border-gray-800 " id="users">
+                    <table id="tblUsers" class="w-full table-auto p2">
+                        <thead>
+                            <tr>
+                                <th class="text-gray-400 text-left">ID</th>
+                                <th class="text-gray-400 text-left">Name</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
                 </div>
             </div>
-            <div class="w-full rounded-bl-lg rounded-br-lg p-2 overlay-bottom items-center justify-center">
+            <div class="overlay-bottom w-3/5 rounded-bl-lg rounded-br-lg p-2 items-center justify-center">
                 <div class="w-full text-center">
                     <button type="button"
                         class="bg-red-500 hover:bg-red-700 text-2xl text-white font-bold py-2 px-4 rounded-full">
