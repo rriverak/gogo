@@ -1,0 +1,55 @@
+@tailwind base;
+
+:host {
+  display: block;
+}
+
+.modal {
+  transition: opacity 0.25s ease;
+  z-index: 2;
+  @apply fixed w-full h-full top-0 left-0 flex items-center justify-center;
+}
+
+.modal-overlay{
+  @apply absolute w-full h-full bg-gray-900 opacity-50;
+}
+
+.modal-container{
+  @apply bg-white w-11/12 mx-auto rounded shadow-lg z-50 overflow-y-auto;
+}
+
+.modal-content{
+  @apply py-4 text-left px-6;
+}
+
+.modal-footer{
+  @apply flex justify-end pt-2;
+}
+
+.modal-title{
+  @apply flex justify-between items-center pb-3 text-2xl font-bold;
+}
+
+.modal button{
+  @apply text-xs font-bold py-2 px-4 rounded-full text-white;
+}
+
+.modal button.indigo{
+  @apply bg-indigo-500  
+}
+.modal button.indigo:hover{
+  @apply bg-indigo-700 
+}
+
+.modal button.gray{
+  @apply bg-gray-500  
+}
+.modal button.gray:hover{
+  @apply bg-gray-700 
+}
+
+
+body.modal-active {
+  overflow-x: hidden;
+  overflow-y: visible !important;
+}

@@ -1,0 +1,18 @@
+@tailwind base;
+
+:host {
+  display: block;
+}
+
+section{
+  @apply p-2 border-solid border-b-2 border-gray-800;
+}
+
+.header {
+  @apply w-full items-center  flex py-2;
+}
+
+.body{
+  @apply w-full text-gray-500;
+}
+

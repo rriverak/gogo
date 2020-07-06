@@ -53,8 +53,6 @@ func (d *SessionController) GetSession(w http.ResponseWriter, r *http.Request) {
 
 //PostSDPSession Handles the SDP for the Session
 func (d *SessionController) PostSDPSession(w http.ResponseWriter, r *http.Request) {
-	// userID := r.Context().Value(auth.SessionContextKey).(uint)
-
 	// Get Parameter
 	sessionID := mux.Vars(r)["id"]
 

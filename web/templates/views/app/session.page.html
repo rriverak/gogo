@@ -3,11 +3,14 @@
 Session: {{.Session.Name}}
 {{end}}
 {{define "main"}}
-<script src="/assets/js/session.js"></script>
 <script>
     window.session_id = "{{.Session.ID}}";
 </script>
 <div class="flex flex-wrap h-full" style="height: 89%;">
+    <gogo-video session-id="{{.Session.ID}}" class="w-full"></gogo-video>
+    <!--Modal
+    <script src="/assets/js/session.js"></script>
+
     <div class="w-full bg-black border-transparent rounded-bl-lg rounded-br-lg shadow-lg">
         <div class="video-wrapper flex flex-wrap justify-center h-full">
             <div class="overlay-top w-3/5 rounded-tl-lg rounded-tr-lg p-2">
@@ -55,21 +58,19 @@ Session: {{.Session.Name}}
                 </div>
             </div>
         </div>
-    </div>
+    </div>-->
 </div>
 {{end}}
 
 {{define "modal-template"}}
-<!--Modal-->
+<!--Modal
 <div class="modal opacity-0 pointer-events-none fixed w-full h-full top-0 left-0 flex items-center justify-center">
     <div class="modal-overlay absolute w-full h-full bg-gray-900 opacity-50"></div>
     <div class="modal-container bg-white w-11/12 md:max-w-md mx-auto rounded shadow-lg z-50 overflow-y-auto">
         <div class="modal-content py-4 text-left px-6">
-            <!--Title-->
             <div class="flex justify-between items-center pb-3">
                 <p class="text-2xl font-bold">Devices</p>
             </div>
-            <!--Body-->
             <div class="body">
                 <div class="flex flex-wrap mb-6">
                     <label class="block text-gray-700 font-bold pr-4" for="inline-full-name">
@@ -100,12 +101,11 @@ Session: {{.Session.Name}}
                     </div>
                 </div>
             </div>
-            <!--Footer-->
             <div class="flex justify-end pt-2">
                 <button
                     class="modal-close px-4 bg-indigo-500 p-3 rounded-lg text-white hover:bg-indigo-400">Start</button>
             </div>
         </div>
     </div>
-</div>
+</div> -->
 {{end}}

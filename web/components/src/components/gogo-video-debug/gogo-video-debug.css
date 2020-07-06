@@ -1,0 +1,14 @@
+@tailwind base;
+
+:host {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  @apply ml-3 mt-12 rounded;
+}
+
+table {
+  @apply text-white text-xs
+}

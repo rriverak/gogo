@@ -1,0 +1,33 @@
+@tailwind base;
+
+@tailwind components;
+
+@tailwind utilities;
+
+.button {
+  @apply text-xs font-bold py-2 px-4 rounded-full text-white;
+}
+
+button.green {
+  @apply bg-green-500
+}
+
+button.green:hover {
+  @apply bg-green-700
+}
+
+button.blue {
+  @apply bg-blue-500
+}
+
+button.blue:hover {
+  @apply bg-blue-700
+}
+
+button.red {
+  @apply bg-red-500
+}
+
+button.red:hover {
+  @apply bg-red-700
+}

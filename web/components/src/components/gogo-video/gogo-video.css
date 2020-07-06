@@ -1,0 +1,67 @@
+@tailwind base;
+
+:host {
+  @apply flex flex-wrap h-full;
+}
+
+.video-box{
+  @apply w-full bg-black border-transparent rounded-bl-lg rounded-br-lg shadow-lg;
+}
+
+.video-wrapper{
+  @apply relative flex flex-wrap justify-center h-full;
+}
+
+.overlay{
+  background-color: rgba(0, 0, 0, .7);
+  position: absolute;
+  left: 0;
+  right: 0;
+}
+
+.overlay button{
+  @apply text-xs font-bold py-2 px-4 rounded-full text-white;
+}
+
+.overlay button.green{
+  @apply bg-green-500;
+}
+.overlay button.green:hover{
+  @apply bg-green-700 
+}
+
+.overlay button.blue{
+  @apply bg-blue-500  
+}
+.overlay button.blue:hover{
+  @apply bg-blue-700 
+}
+
+.overlay button.red{
+  @apply bg-red-500  
+}
+.overlay button.red:hover{
+  @apply bg-red-700 
+}
+
+.overlay .toolbar{
+  @apply p-2
+}
+
+.overlay.top{
+  top: 0;
+  @apply w-3/5 rounded-tl-lg rounded-tr-lg z-10;
+}
+
+.overlay.bottom{
+  bottom: 0;
+  @apply w-3/5 rounded-bl-lg rounded-br-lg z-10;
+}
+
+.video-viewer{
+  @apply w-3/5 h-full rounded-lg ;
+}
+
+.video-viewer video{
+  @apply h-full w-full rounded-lg;
+}

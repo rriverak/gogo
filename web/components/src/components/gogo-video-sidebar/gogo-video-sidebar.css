@@ -1,0 +1,40 @@
+@tailwind base;
+
+:host {
+  @apply bg-gray-900 text-white w-2/5 rounded-br-lg;
+}
+
+table{
+  @apply w-full table-auto;
+}
+
+th{
+  @apply text-gray-400 text-left;
+}
+
+tr .center{
+  @apply text-center;
+}
+
+ul {
+  @apply flex border-gray-800 border-b;
+}
+
+li{
+  @apply -mb-px mr-1;
+}
+
+li:first a{
+  @apply bg-gray-800 inline-block py-2 px-4 text-gray-400 cursor-pointer border-l-0 border-t border-r  border-transparent
+}
+
+
+li a{
+  @apply bg-gray-800 inline-block py-2 px-4 text-gray-400 cursor-pointer border-l border-t border-r  border-transparent
+}
+li a:hover{
+  @apply text-gray-600 underline
+}
+li a.active{
+  @apply border-gray-700 rounded-t py-2 px-4 text-gray-600   
+}
